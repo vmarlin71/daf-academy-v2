@@ -1,0 +1,34 @@
+DAF ACADEMY V3 CLEAN - START HERE
+
+Cette version est volontairement sans Next.js / TypeScript / npm.
+Elle ne nécessite AUCUN build. Vercel sert directement les fichiers statiques.
+
+AVANT GITHUB
+1) Ouvrir config.js avec Bloc-notes.
+2) Remplacer YOUR_SUPABASE_PROJECT_URL par ton Project URL Supabase.
+3) Remplacer YOUR_SUPABASE_PUBLISHABLE_KEY par ta Publishable key Supabase.
+4) Enregistrer le fichier.
+IMPORTANT : ne jamais utiliser une service_role / Secret key.
+
+GITHUB
+5) Créer un NOUVEAU repository : daf-academy-v3 (ne supprime pas l'ancien pour l'instant).
+6) Upload files.
+7) Uploader TOUS les fichiers et dossiers présents ici à la racine du repository.
+8) Vérifier que index.html et config.js sont visibles directement à la racine.
+
+VERCEL
+9) Créer un NOUVEAU projet en important daf-academy-v3.
+10) Framework Preset : Other.
+11) Build Command : laisser vide.
+12) Output Directory : laisser vide.
+13) Environment Variables : aucune nécessaire pour cette V3.
+14) Deploy.
+
+SUPABASE
+Ne recrée pas le projet et ne relance pas schema.sql : la V3 utilise le même schéma que la V2 déjà installé.
+
+TEST
+- Ouvrir l'URL Vercel.
+- Cliquer sur Se connecter.
+- Créer un compte / se connecter.
+- Marquer un cours comme lu, faire le quiz, puis vérifier la progression.
