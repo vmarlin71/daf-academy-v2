@@ -1,165 +1,224 @@
-
 const q = (id, question, options, correctIndex, explanation) => ({ id, question, options, correctIndex, explanation })
 
 const ready = [
   {
-    slug:'role-finance', level:1, order:1, title:'À quoi sert la finance ?', duration:12, difficulty:'Débutant', available:true,
-    description:'Comprendre le rôle de la finance et la différence entre comptabilité, contrôle de gestion et trésorerie.',
-    objectives:['Comprendre les grandes missions de la finance','Distinguer comptabilité, FP&A et trésorerie','Relier performance, rentabilité et cash'],
+    slug:'role-finance', level:1, order:1, title:'À quoi sert la finance ?', duration:20, difficulty:'Débutant', available:true,
+    description:'Comprendre le rôle de la finance, les grandes fonctions et le réflexe qui relie performance, bilan et cash.',
+    objectives:['Comprendre les missions de la finance','Distinguer comptabilité, FP&A et trésorerie','Relier rentabilité, liquidité et solidité financière','Adopter un premier réflexe de DAF'],
     sections:[
-      {title:'La finance traduit l’activité en décisions', body:'La finance ne consiste pas seulement à enregistrer des chiffres. Elle mesure ce qui s’est passé, aide à comprendre pourquoi, puis éclaire les décisions futures.', bullets:['Comptabilité : fiabiliser les faits passés','Contrôle de gestion / FP&A : analyser et prévoir','Trésorerie : sécuriser le cash','DAF : arbitrer et piloter']},
-      {title:'Trois questions fondamentales', body:'Toute analyse financière revient souvent à trois questions : est-ce rentable, est-ce financé, et est-ce durable ?', bullets:['Rentabilité : création de marge et de résultat','Liquidité : capacité à payer les échéances','Solidité : niveau de dette et structure du bilan']},
-      {title:'Le réflexe DAF', body:'Un bon financier relie toujours résultat, bilan et cash. Une entreprise peut être rentable sur le papier et manquer de trésorerie.', example:'Une société vend plus, mais ses clients paient à 90 jours : le résultat progresse alors que la trésorerie peut se dégrader.'}
+      {title:'La finance transforme l’activité en décisions', body:'La finance ne sert pas seulement à produire des chiffres. Elle fiabilise ce qui s’est passé, explique les écarts, anticipe la suite et aide le management à arbitrer.', bullets:['Mesurer : disposer de chiffres fiables','Expliquer : comprendre les drivers','Prévoir : construire budget et forecast','Décider : arbitrer ressources, risques et investissements']},
+      {title:'Les grandes fonctions finance', body:'Chaque équipe répond à une question différente, mais elles doivent travailler ensemble.', bullets:['Comptabilité : que s’est-il réellement passé ?','FP&A / contrôle de gestion : pourquoi et que va-t-il se passer ?','Trésorerie : avons-nous le cash et les financements nécessaires ?','Fiscalité / contrôle interne : quels risques devons-nous maîtriser ?']},
+      {title:'Les trois états à toujours relier', body:'Un financier raisonne simultanément en résultat, patrimoine et trésorerie.', bullets:['P&L : performance sur une période','Bilan : actifs, passifs et capitaux propres à une date','Cash-flow : mouvements de trésorerie sur la période']},
+      {title:'Rentabilité, liquidité, solidité', body:'Une entreprise saine doit combiner ces trois dimensions. Une bonne marge ne suffit pas si le cash est bloqué dans les stocks et créances ou si la dette devient trop lourde.', example:'Une société peut afficher +15% d’EBITDA tout en manquant de cash si son DSO et ses stocks augmentent fortement.'},
+      {title:'Le cycle de décision du DAF', body:'Le rôle du DAF consiste à transformer les chiffres en action.', bullets:['Observer le réalisé','Identifier l’écart et son driver','Mettre à jour le forecast','Définir l’action et le responsable','Mesurer l’impact réel de l’action']}
     ],
+    calculation:{title:'Lecture rapide',prompt:'Une société réalise 10 M€ de CA, 1,2 M€ d’EBITDA mais consomme 0,8 M€ de cash. Peut-on conclure que sa performance est mauvaise ?',hint:'Sépare rentabilité et génération de cash.',answer:'Non. L’EBITDA montre une activité opérationnelle rentable, mais le cash peut être consommé par le BFR, le capex, les intérêts ou les impôts. Il faut construire le pont EBITDA → cash.',steps:['Constater : EBITDA positif = rentabilité opérationnelle','Identifier : cash négatif = autre consommation de trésorerie','Analyser : BFR, capex, intérêts, impôts, éléments exceptionnels']},
+    caseStudy:{title:'Mini-cas · croissance sans cash',scenario:'Le CA progresse de 20%, l’EBITDA de 12%, mais la trésorerie baisse de 3 M€. Les créances clients progressent de 35% et les stocks de 30%.',questions:['Quel signal doit alerter le DAF ?','Quelles analyses demander en priorité ?'],correction:['La croissance n’est pas convertie en cash : le BFR absorbe une partie de la performance.','Analyser DSO, retards clients, DIO, obsolescence, prévisions de stocks et cash forecast court terme.'],takeaway:'Le premier réflexe DAF est de ne jamais regarder le P&L isolément.'},
     quiz:[
       q('r1','Quel est le rôle principal de la comptabilité ?',['Prévoir les ventes','Fiabiliser les opérations passées','Négocier les banques','Définir la stratégie'],1,'La comptabilité enregistre et fiabilise les transactions déjà réalisées.'),
       q('r2','Le FP&A sert surtout à…',['Analyser, budgéter et prévoir','Tenir la paie','Auditer les comptes','Payer les fournisseurs'],0,'Le FP&A transforme les données en analyses, budgets et forecasts.'),
       q('r3','Une entreprise rentable peut-elle manquer de cash ?',['Non','Oui','Uniquement si elle est cotée','Uniquement en perte'],1,'Le résultat et le cash ne suivent pas le même timing.'),
       q('r4','Quel réflexe est le plus pertinent ?',['Regarder uniquement le CA','Relier P&L, bilan et cash','Regarder uniquement l’EBITDA','Ignorer le BFR'],1,'Le pilotage financier nécessite une vision cohérente des trois états.'),
+      q('r5','Quel état financier est une photographie à une date ?',['P&L','Bilan','Cash-flow uniquement','Forecast'],1,'Le bilan décrit la situation financière à une date donnée.'),
+      q('r6','Le DAF constate un écart défavorable. Quelle étape vient après le diagnostic ?',['Cacher l’écart','Mettre à jour les perspectives et définir une action','Modifier le réalisé','Attendre la clôture annuelle'],1,'Le pilotage transforme l’analyse en forecast puis en action.')
     ]
   },
   {
-    slug:'pnl-basics', level:1, order:2, title:'Comprendre le P&L', duration:18, difficulty:'Débutant', available:true,
-    description:'Lire un compte de résultat du chiffre d’affaires au résultat net.',
-    objectives:['Lire les principales lignes du P&L','Comprendre marge, EBITDA et EBIT','Identifier les principaux drivers de résultat'],
+    slug:'pnl-basics', level:1, order:2, title:'Comprendre le P&L', duration:28, difficulty:'Débutant', available:true,
+    description:'Lire un compte de résultat du chiffre d’affaires au résultat net et comprendre les drivers de marge.',
+    objectives:['Lire les principales lignes du P&L','Comprendre marge brute, EBITDA et EBIT','Analyser masse et pourcentage','Distinguer croissance et création de valeur'],
     sections:[
-      {title:'Du chiffre d’affaires au résultat', body:'Le P&L mesure la performance sur une période. On part des ventes puis on retranche différentes catégories de coûts.', bullets:['Net Sales : ventes nettes','Gross Margin : ventes moins coûts directement liés','EBITDA : performance opérationnelle avant D&A','EBIT : après amortissements','Net Income : après intérêts et impôts']},
-      {title:'Marge en masse et en pourcentage', body:'Il faut analyser à la fois les euros de marge et le taux de marge.', formula:'Gross margin % = Gross margin / Net Sales', example:'100 M€ de ventes et 35 M€ de marge brute donnent 35% de marge.'},
-      {title:'Le piège du volume', body:'Une hausse du CA n’est pas forcément positive si elle provient de produits moins rentables ou de prix insuffisants.', example:'Les ventes passent de 100 à 110, mais la marge brute de 35 à 34 : la croissance détruit de la valeur.'}
+      {title:'Le P&L mesure une performance sur une période', body:'Le compte de résultat rassemble les revenus et charges rattachés à une période : mois, trimestre ou année. Il ne décrit pas directement les encaissements et décaissements.', bullets:['Net Sales : ventes nettes','COGS : coûts directement liés aux ventes','Opex : coûts opérationnels','D&A : depreciation & amortization','Intérêts et impôts : éléments après l’exploitation']},
+      {title:'Du CA à la marge brute', body:'La marge brute mesure ce qui reste après les coûts directement liés aux produits ou services vendus.', formula:'Gross Margin = Net Sales - COGS', example:'120 M€ de ventes et 78 M€ de COGS donnent 42 M€ de marge brute, soit 35%.'},
+      {title:'De la marge brute à l’EBITDA', body:'L’EBITDA retranche les charges opérationnelles hors depreciation & amortization. Il permet de comparer la performance opérationnelle, mais ne représente pas le cash.', formula:'EBITDA margin = EBITDA / Net Sales'},
+      {title:'EBIT et résultat net', body:'L’EBIT tient compte des amortissements. Le résultat net ajoute ensuite notamment le coût de la dette et les impôts.', bullets:['EBIT = EBITDA - D&A','Profit before tax = EBIT - net interest ± autres éléments','Net income = profit before tax - tax']},
+      {title:'Masse, taux et qualité de croissance', body:'Une croissance du CA peut être dilutive si elle repose sur un mix moins rentable, des remises ou une inflation des coûts non compensée.', example:'CA +10%, mais marge brute en masse -2% et marge % de 35% à 31% : la croissance détruit de la contribution.'}
     ],
+    calculation:{title:'Construis le P&L',prompt:'CA 120 M€ ; COGS 78 M€ ; Opex hors D&A 25 M€ ; D&A 4 M€ ; intérêts 3 M€ ; impôts 2 M€. Calcule marge brute, EBITDA, EBIT et résultat net.',hint:'Descends ligne par ligne.',answer:'Marge brute 42 M€ ; EBITDA 17 M€ ; EBIT 13 M€ ; résultat net 8 M€.',steps:['Gross Margin = 120 - 78 = 42','EBITDA = 42 - 25 = 17','EBIT = 17 - 4 = 13','Net income = 13 - 3 - 2 = 8']},
+    caseStudy:{title:'Mini-cas · croissance dilutive',scenario:'Les ventes passent de 100 à 110 M€. La marge brute passe de 35 à 34 M€. Les équipes commerciales expliquent que « la croissance est très bonne ».',questions:['Que réponds-tu ?','Quels drivers veux-tu analyser ?'],correction:['Le CA croît de 10%, mais la marge brute baisse de 1 M€ et le taux chute de 35% à 30,9%. La croissance est dilutive.','Prix, volume, mix, coût matière, remises, nouveaux/lost business et profitabilité client/produit.'],takeaway:'Le CA n’est jamais une fin en soi : le DAF regarde la qualité de la croissance.'},
     quiz:[
       q('p1','Que mesure principalement le P&L ?',['La performance sur une période','Le patrimoine à une date','Uniquement le cash','Uniquement la dette'],0,'Le compte de résultat couvre une période, contrairement au bilan qui est une photographie à une date.'),
       q('p2','L’EBITDA se situe…',['Avant les charges opérationnelles','Avant D&A, intérêts et impôts','Après le résultat net','Après les dividendes'],1,'L’EBITDA exclut notamment depreciation & amortization, intérêts et impôts.'),
       q('p3','CA = 80, marge brute = 24. Quel taux de marge ?',['24%','30%','56%','3,3%'],1,'24 / 80 = 30%.'),
       q('p4','Le CA progresse mais la marge brute baisse. Quelle conclusion ?',['Toujours positif','La croissance peut être dilutive','Impossible','Le cash augmente forcément'],1,'La croissance peut être tirée par un mix ou des prix moins favorables.'),
+      q('p5','EBITDA 15 M€ et D&A 4 M€. Quel EBIT ?',['11 M€','19 M€','15 M€','4 M€'],0,'EBIT = EBITDA - D&A = 11 M€.'),
+      q('p6','Pourquoi regarder marge en masse ET en % ?',['Le taux seul suffit','La masse mesure la contribution absolue et le % la qualité relative','Uniquement pour les sociétés cotées','Pour calculer la dette'],1,'Les deux lectures sont complémentaires pour comprendre la performance.')
     ]
   },
   {
-    slug:'balance-sheet', level:1, order:3, title:'Comprendre le bilan', duration:20, difficulty:'Débutant', available:true,
-    description:'Comprendre actifs, passifs, capitaux propres et logique emplois-ressources.',
-    objectives:['Lire un bilan simple','Comprendre actif = passif','Identifier dette, créances, stocks et capitaux propres'],
+    slug:'balance-sheet', level:1, order:3, title:'Comprendre le bilan', duration:28, difficulty:'Débutant', available:true,
+    description:'Comprendre actifs, passifs, capitaux propres et détecter les premiers signaux de liquidité.',
+    objectives:['Lire un bilan simple','Comprendre actif = passifs + capitaux propres','Identifier BFR, dette et equity','Repérer des signaux de tension'],
     sections:[
-      {title:'Une photographie à une date', body:'Le bilan décrit ce que l’entreprise possède et comment cela est financé.', formula:'Actif = Passif + Capitaux propres', bullets:['Actifs : cash, créances, stocks, immobilisations','Passifs : fournisseurs, dette, provisions','Equity : capital et résultats accumulés']},
-      {title:'Court terme vs long terme', body:'La distinction de maturité est essentielle pour juger la liquidité.', bullets:['Current assets : convertibles en cash à court terme','Current liabilities : obligations à court terme','Non-current : horizon plus long']},
-      {title:'Lire les signaux', body:'Un bilan permet d’identifier des tensions avant même qu’elles n’apparaissent dans le P&L.', example:'Des créances clients qui augmentent beaucoup plus vite que les ventes peuvent signaler un problème de recouvrement.'}
+      {title:'Une photographie à une date', body:'Le bilan décrit les ressources contrôlées par l’entreprise et la façon dont elles sont financées.', formula:'Actifs = Passifs + Capitaux propres'},
+      {title:'Les actifs', body:'Les actifs regroupent ce qui doit générer un bénéfice économique futur.', bullets:['Cash','Créances clients','Stocks','Immobilisations corporelles et incorporelles','Autres actifs']},
+      {title:'Passifs et capitaux propres', body:'Les passifs sont des obligations envers des tiers. Les capitaux propres représentent la part résiduelle des actionnaires.', bullets:['Fournisseurs et autres dettes opérationnelles','Dette bancaire et obligataire','Provisions','Capital et retained earnings']},
+      {title:'Court terme et liquidité', body:'La maturité des actifs et passifs est essentielle. Un bilan peut être solvable à long terme mais manquer de liquidité à court terme.', formula:'Current Ratio = Current Assets / Current Liabilities'},
+      {title:'Lire les mouvements, pas seulement le niveau', body:'Comparer le bilan aux ventes ou au mois précédent permet d’identifier des anomalies.', example:'Des créances +30% avec des ventes +5% peuvent signaler des retards d’encaissement ou un problème de cut-off.'}
     ],
+    calculation:{title:'Équilibre du bilan',prompt:'Actifs totaux = 150 M€. Passifs hors capitaux propres = 92 M€. Quel montant de capitaux propres ? Si current assets = 48 M€ et current liabilities = 40 M€, quel current ratio ?',hint:'Utilise l’équation du bilan puis la formule de liquidité.',answer:'Capitaux propres = 58 M€. Current ratio = 1,20x.',steps:['Equity = 150 - 92 = 58','Current ratio = 48 / 40 = 1,20x']},
+    caseStudy:{title:'Mini-cas · bilan qui se tend',scenario:'En 6 mois, CA +4%, créances +22%, stocks +18%, fournisseurs +3%, dette court terme +25%.',questions:['Quel diagnostic initial ?','Quelles questions poser aux équipes ?'],correction:['Le BFR se dégrade et semble financé par davantage de dette court terme.','Clients en retard ? Litiges ? Surstock ? Forecast de demande ? Conditions fournisseurs ? Besoin de financement à 13 semaines ?'],takeaway:'Le bilan révèle souvent les tensions de cash avant qu’elles ne deviennent critiques.'},
     quiz:[
       q('b1','Le bilan est…',['Un flux mensuel','Une photographie à une date','Un budget','Un forecast'],1,'Le bilan représente une situation financière à une date donnée.'),
       q('b2','Une créance client est…',['Un actif','Un passif','Une charge','Un dividende'],0,'C’est un montant dû à l’entreprise.'),
       q('b3','La dette bancaire figure généralement…',['Dans les actifs','Dans les passifs','Dans le chiffre d’affaires','Dans les stocks'],1,'La dette représente une obligation envers un financeur.'),
       q('b4','Si l’actif vaut 150 et les passifs 90, les capitaux propres valent…',['60','240','90','150'],0,'150 = 90 + 60.'),
+      q('b5','Current assets 60, current liabilities 50. Current ratio ?',['0,83x','1,20x','10x','110x'],1,'60 / 50 = 1,20x.'),
+      q('b6','Créances +25% avec CA +3% : quel réflexe ?',['Aucun','Analyser DSO, retards et cut-off','Augmenter immédiatement les prix','Réduire les amortissements'],1,'Les créances croissent anormalement vite par rapport à l’activité.')
     ]
   },
   {
-    slug:'cash-flow', level:1, order:4, title:'Comprendre le cash-flow', duration:20, difficulty:'Débutant', available:true,
-    description:'Passer du résultat comptable aux mouvements réels de trésorerie.',
-    objectives:['Distinguer résultat et cash','Comprendre CFO, CFI et CFF','Reconnaître les éléments non cash'],
+    slug:'cash-flow', level:1, order:4, title:'Comprendre le cash-flow', duration:30, difficulty:'Débutant', available:true,
+    description:'Passer du résultat comptable aux mouvements réels de trésorerie et comprendre le free cash flow.',
+    objectives:['Distinguer résultat et cash','Comprendre CFO, CFI et CFF','Construire un pont EBITDA → cash','Calculer un free cash flow simple'],
     sections:[
-      {title:'Trois familles de flux', body:'Le cash-flow statement explique pourquoi la trésorerie a varié.', bullets:['Operating cash flow : activité courante','Investing cash flow : acquisitions et capex','Financing cash flow : dette, equity, dividendes']},
-      {title:'Du résultat au cash opérationnel', body:'On part souvent du résultat puis on neutralise les éléments non cash et les variations de BFR.', formula:'CFO ≈ Net income + non-cash items - increase in working capital', example:'Une hausse des créances clients consomme du cash même si la vente est reconnue en chiffre d’affaires.'},
-      {title:'Free cash flow', body:'Le FCF mesure le cash restant après les investissements nécessaires.', formula:'FCF ≈ Operating Cash Flow - Capex'}
+      {title:'Pourquoi le cash diffère du résultat', body:'Le P&L applique des règles de rattachement. Le cash suit les encaissements et décaissements réels. Le timing peut donc être très différent.'},
+      {title:'Trois familles de flux', body:'Le cash-flow statement explique la variation de trésorerie.', bullets:['Operating cash flow : activité courante et BFR','Investing cash flow : capex, cessions, acquisitions','Financing cash flow : dette, equity, dividendes']},
+      {title:'Du résultat au cash opérationnel', body:'On neutralise les éléments non cash et on intègre les variations du besoin en fonds de roulement.', formula:'CFO ≈ Net income + non-cash items - increase in working capital'},
+      {title:'De l’EBITDA au cash', body:'En pilotage, on suit souvent un bridge simple pour comprendre la conversion de la performance en trésorerie.', formula:'Cash conversion ≈ EBITDA - ΔBFR - Capex - Cash tax - Cash interest ± autres flux'},
+      {title:'Free cash flow', body:'Le FCF mesure la capacité de l’activité à générer du cash après les investissements nécessaires.', formula:'FCF ≈ Operating Cash Flow - Capex', example:'Un EBITDA élevé avec un FCF faible peut venir d’un BFR ou d’un capex très consommateur.'}
     ],
+    calculation:{title:'Pont EBITDA → cash',prompt:'EBITDA 20 M€ ; hausse du BFR 5 M€ ; capex 6 M€ ; cash tax 2 M€ ; intérêts 1 M€. Ignore les autres flux. Quel cash approximatif reste ?',hint:'Chaque consommation de cash vient en moins de l’EBITDA.',answer:'6 M€.',steps:['20 - 5 = 15','15 - 6 = 9','9 - 2 - 1 = 6']},
+    caseStudy:{title:'Mini-cas · EBITDA record, cash faible',scenario:'L’entreprise annonce un EBITDA record de 30 M€, mais seulement 5 M€ de free cash flow. Le management pense que « le cash devrait être proche de l’EBITDA ».',questions:['Pourquoi cette intuition est-elle fausse ?','Quel bridge présenter ?'],correction:['L’EBITDA ignore BFR, capex, impôts, intérêts et autres décaissements.','EBITDA → variation BFR → capex → taxes → intérêts → autres flux → FCF.'],takeaway:'Le DAF doit expliquer la conversion EBITDA → cash, pas seulement l’EBITDA.'},
     quiz:[
       q('c1','Une hausse des créances clients a généralement quel effet sur le cash ?',['Positif','Négatif','Aucun','Toujours nul'],1,'Le cash n’a pas encore été encaissé.'),
       q('c2','Un capex apparaît principalement dans…',['Cash-flow d’investissement','Cash-flow opérationnel','CA','Gross margin'],0,'Les investissements sont classés en investing cash flow.'),
       q('c3','Les amortissements sont…',['Toujours une sortie de cash','Une charge non cash','Un financement','Une créance'],1,'Ils réduisent le résultat sans provoquer une sortie de cash à la période comptabilisée.'),
       q('c4','Le free cash flow correspond approximativement à…',['CFO - Capex','CA - salaires','EBITDA + dette','Cash + stocks'],0,'C’est une définition pratique fréquemment utilisée.'),
+      q('c5','Une augmentation du BFR de 4 M€ signifie généralement…',['+4 M€ de cash','-4 M€ de cash','Aucun effet','+4 M€ d’EBITDA'],1,'Davantage de cash est immobilisé dans le cycle d’exploitation.'),
+      q('c6','L’EBITDA peut être élevé et le FCF faible si…',['Le capex et le BFR consomment beaucoup','Les ventes sont élevées','Le bilan est équilibré','Les amortissements sont nuls'],0,'Le FCF intègre plusieurs flux que l’EBITDA ignore.')
     ]
   },
   {
-    slug:'accounting-basics', level:1, order:5, title:'Débit, crédit et comptabilité', duration:22, difficulty:'Débutant', available:true,
-    description:'Comprendre la mécanique comptable sans devenir comptable.',
-    objectives:['Comprendre le principe de partie double','Savoir ce qu’est une écriture','Relier journal, grand livre et états financiers'],
+    slug:'accounting-basics', level:1, order:5, title:'Débit, crédit et comptabilité', duration:30, difficulty:'Débutant', available:true,
+    description:'Comprendre la partie double, les comptes et le chemin qui mène des transactions aux états financiers.',
+    objectives:['Comprendre débit et crédit','Savoir lire une écriture simple','Comprendre journal, GL et balance','Relier les écritures aux états financiers'],
     sections:[
-      {title:'La partie double', body:'Chaque transaction affecte au moins deux comptes. Le total des débits doit toujours égaler le total des crédits.', formula:'Total débits = Total crédits'},
-      {title:'Exemple de vente', body:'Une vente à crédit augmente une créance client et reconnaît un produit.', example:'Débit Accounts Receivable 1 000 / Crédit Sales 1 000.'},
-      {title:'Pourquoi le DAF doit comprendre la mécanique', body:'Les analyses de marge, provisions, cut-off ou BFR reposent sur la bonne compréhension des écritures sous-jacentes.', bullets:['Détecter une erreur de cut-off','Comprendre une provision','Analyser un compte GL','Challenger une clôture']}
+      {title:'La partie double', body:'Chaque transaction affecte au moins deux comptes et doit rester équilibrée.', formula:'Total débits = Total crédits'},
+      {title:'Débit et crédit ne veulent pas dire + et -', body:'Le sens dépend de la nature du compte.', bullets:['Actif : augmentation au débit','Charge : augmentation au débit','Passif : augmentation au crédit','Capitaux propres : augmentation au crédit','Produit : augmentation au crédit']},
+      {title:'Exemple de vente à crédit', body:'La vente crée un produit et une créance client.', example:'Débit Accounts Receivable 1 000 / Crédit Sales 1 000.'},
+      {title:'Du journal au grand livre', body:'Les écritures sont enregistrées dans le journal puis regroupées par compte dans le General Ledger. La trial balance vérifie notamment l’équilibre global.', bullets:['Journal : transactions chronologiques','GL : mouvements par compte','Trial balance : soldes des comptes','Financial statements : agrégation finale']},
+      {title:'Pourquoi un DAF doit comprendre les écritures', body:'Une grande partie des questions de clôture, marge, BFR et provisions sont en réalité des questions de mécanique comptable.', example:'Si une charge n’est pas enregistrée au bon mois, le forecast vs actual et la marge mensuelle seront trompeurs.'}
     ],
+    calculation:{title:'Passe les écritures',prompt:'1) Vente à crédit 5 000 €. 2) Encaissement du client 5 000 €. Quelles écritures simplifiées ?',hint:'Identifie d’abord les comptes qui augmentent ou diminuent.',answer:'1) Débit AR 5 000 / Crédit Sales 5 000. 2) Débit Cash 5 000 / Crédit AR 5 000.',steps:['La vente crée une créance et un produit','L’encaissement transforme la créance en cash sans créer une seconde vente']},
+    caseStudy:{title:'Mini-cas · chiffre d’affaires sans cash',scenario:'Le commercial indique « nous avons vendu 100 k€, donc nous avons gagné 100 k€ de cash ». La vente est à 60 jours.',questions:['Qu’est-ce qui est comptabilisé au jour de la vente ?','Que se passe-t-il au paiement ?'],correction:['Le CA est reconnu et une créance client est créée. Le cash n’a pas encore bougé.','À l’encaissement : Cash augmente et Accounts Receivable diminue. Il n’y a pas un nouveau CA.'],takeaway:'Une même transaction peut toucher P&L, bilan et cash à des moments différents.'},
     quiz:[
       q('a1','Dans une écriture équilibrée…',['Débits = crédits','Débits > crédits','Crédits > débits','Il n’y a qu’un compte'],0,'La partie double impose l’égalité.'),
       q('a2','Une vente à crédit augmente généralement…',['La dette bancaire','Les créances clients','Les stocks','Les dividendes'],1,'Le client doit encore payer.'),
       q('a3','Un GL account est…',['Un compte du grand livre','Un budget','Un contrat bancaire','Un KPI commercial'],0,'GL signifie General Ledger.'),
       q('a4','Pourquoi comprendre les écritures est utile au DAF ?',['Pour coder un ERP','Pour relier les mouvements aux états financiers','Uniquement pour l’audit','Ce n’est pas utile'],1,'La qualité de l’analyse dépend de la compréhension des flux comptables.'),
+      q('a5','Une augmentation d’actif se comptabilise normalement…',['Au débit','Au crédit','Toujours hors bilan','En dividende'],0,'Les actifs augmentent normalement au débit.'),
+      q('a6','Lorsqu’un client paie une créance existante…',['Le CA augmente une deuxième fois','Cash augmente et AR diminue','La dette augmente','Les stocks augmentent'],1,'L’encaissement transforme la créance en trésorerie.')
     ]
   },
   {
-    slug:'accruals-provisions', level:1, order:6, title:'Cut-off, accruals et provisions', duration:22, difficulty:'Débutant', available:true,
-    description:'Comprendre pourquoi une charge ou un revenu peut être reconnu avant ou après le paiement.',
-    objectives:['Comprendre le principe de rattachement','Distinguer accrual et provision','Comprendre les enjeux de clôture'],
+    slug:'accruals-provisions', level:1, order:6, title:'Cut-off, accruals et provisions', duration:30, difficulty:'Débutant', available:true,
+    description:'Comprendre le rattachement des charges et revenus à la bonne période et les principales estimations de clôture.',
+    objectives:['Comprendre le matching principle','Distinguer accrual, prepayment et provision','Maîtriser le cut-off','Comprendre les impacts de clôture'],
     sections:[
-      {title:'Le principe de rattachement', body:'Le résultat doit refléter l’activité de la période, pas seulement les factures reçues ou payées.', example:'Une prestation consommée en décembre mais facturée en janvier doit généralement être rattachée à décembre.'},
-      {title:'Accrual vs provision', body:'Un accrual concerne souvent une charge certaine dont le montant ou la facture n’est pas encore finalisé. Une provision couvre une obligation ou un risque comportant davantage d’incertitude.', bullets:['Accrued expense : service reçu, facture manquante','Provision : risque probable et estimable']},
-      {title:'Le cut-off', body:'Le cut-off vise à placer ventes et charges dans la bonne période. C’est critique autour des fins de mois et d’année.'}
+      {title:'Le principe de rattachement', body:'Le P&L doit refléter l’activité de la période, indépendamment du moment de facturation ou de paiement.', example:'Une prestation consommée en décembre mais facturée en janvier doit généralement être enregistrée en décembre.'},
+      {title:'Accrual', body:'Un accrual reconnaît une charge ou un revenu déjà économiquement acquis alors que la facture ou le paiement intervient plus tard.', bullets:['Accrued expense : service reçu, facture manquante','Accrued revenue : revenu acquis mais pas encore facturé']},
+      {title:'Prepayment', body:'Un paiement peut intervenir avant la consommation du service. La partie qui concerne les périodes futures reste au bilan.', example:'Assurance annuelle de 12 k€ payée en janvier : 1 k€ de charge par mois, le solde non consommé reste en prepaid expense.'},
+      {title:'Provision', body:'Une provision couvre une obligation probable dont le montant ou le timing est incertain, sous réserve des règles comptables applicables.', bullets:['Litige probable','Garantie','Restructuration sous conditions','Obligation environnementale']},
+      {title:'Le cut-off de clôture', body:'Autour de la fin de période, le DAF sécurise ventes, achats, stocks et services pour éviter les décalages artificiels de résultat.', bullets:['Goods received not invoiced','Invoices received not consumed','Revenue recognition','Stock in transit et retours']}
     ],
+    calculation:{title:'Accrual de clôture',prompt:'Une prestation de 60 k€ couvre décembre à février, à parts égales. La facture sera reçue en février. Quelle charge rattacher à décembre ?',hint:'Répartis le service selon la période de consommation.',answer:'20 k€ de charge en décembre.',steps:['60 k€ / 3 mois = 20 k€ par mois','Décembre consomme un mois de prestation','Accrual de 20 k€ à la clôture de décembre']},
+    caseStudy:{title:'Mini-cas · clôture trop belle',scenario:'À J+1, l’EBITDA de décembre est 500 k€ au-dessus du forecast. Tu apprends que plusieurs prestations de décembre ne sont pas encore facturées.',questions:['Quel risque ?','Que demandes-tu avant de publier ?'],correction:['L’EBITDA peut être artificiellement surévalué par des charges manquantes.','Liste des PO/services reçus non facturés, estimation des accruals, validation avec opérationnels et rapprochement vs budget/forecast.'],takeaway:'Un bon cut-off protège la crédibilité du résultat mensuel.'},
     quiz:[
       q('ap1','Une charge de décembre facturée en janvier doit généralement être…',['Ignorée','Rattachée à décembre','Rattachée à février','Mise en equity'],1,'Le principe d’accrual accounting rattache la charge à la période de consommation.'),
       q('ap2','Le cut-off concerne surtout…',['La bonne période de comptabilisation','Le taux d’impôt','La valeur de marché','La dette nette'],0,'Il sécurise le rattachement temporel.'),
       q('ap3','Une provision couvre typiquement…',['Un risque probable estimable','Une vente certaine','Un dividende versé','Un compte bancaire'],0,'La provision traduit une obligation ou un risque probable.'),
       q('ap4','Pourquoi une clôture peut évoluer après réception de factures ?',['À cause du cut-off et des accruals','Parce que le CA change toujours','Parce que le cash est faux','Parce que le bilan n’existe pas'],0,'Les estimations sont ajustées avec l’information disponible.'),
+      q('ap5','Un paiement effectué aujourd’hui pour un service de l’année prochaine est souvent…',['Un prepaid asset au départ','Une dette bancaire','Un produit','Un EBITDA additionnel'],0,'La charge est reconnue au rythme de consommation du service.'),
+      q('ap6','Des charges manquantes à la clôture ont tendance à…',['Sous-évaluer temporairement l’EBITDA','Surévaluer temporairement l’EBITDA','Ne jamais affecter le P&L','Augmenter automatiquement le cash'],1,'Moins de charges comptabilisées signifie un EBITDA artificiellement plus élevé.')
     ]
   },
   {
-    slug:'working-capital', level:1, order:7, title:'BFR / Working Capital', duration:25, difficulty:'Débutant', available:true,
-    description:'Comprendre comment clients, stocks et fournisseurs consomment ou libèrent du cash.',
-    objectives:['Calculer un BFR simplifié','Comprendre DSO, DIO et DPO','Relier croissance et besoin de financement'],
+    slug:'working-capital', level:1, order:7, title:'BFR / Working Capital', duration:35, difficulty:'Débutant', available:true,
+    description:'Comprendre comment créances, stocks et fournisseurs consomment ou libèrent du cash et piloter les jours de BFR.',
+    objectives:['Calculer un BFR simplifié','Comprendre DSO, DIO et DPO','Mesurer l’impact cash des jours','Identifier des actions opérationnelles'],
     sections:[
-      {title:'Le cycle d’exploitation', body:'L’entreprise achète, stocke, vend puis encaisse. Les décalages créent un besoin de financement.', formula:'BFR ≈ Receivables + Inventory - Payables'},
-      {title:'Les trois indicateurs clés', body:'On exprime souvent les composantes du BFR en jours.', bullets:['DSO : jours de créances clients','DIO : jours de stocks','DPO : jours fournisseurs'], formula:'Cash Conversion Cycle ≈ DSO + DIO - DPO'},
-      {title:'Croissance et cash', body:'Une forte croissance peut consommer beaucoup de trésorerie si le BFR augmente.', example:'Les ventes progressent de 20%, mais les stocks et créances progressent de 40% : le besoin de cash augmente fortement.'}
+      {title:'Le cycle d’exploitation', body:'L’entreprise paie ses fournisseurs, transforme ou stocke, vend puis encaisse. Les décalages entre ces étapes immobilisent du cash.', formula:'BFR ≈ Receivables + Inventory - Payables'},
+      {title:'DSO · clients', body:'Le DSO mesure approximativement le nombre de jours de ventes immobilisés dans les créances.', formula:'DSO ≈ Receivables / Sales × 365', example:'10 M€ de créances pour 100 M€ de CA annuel ≈ 36,5 jours.'},
+      {title:'DIO · stocks', body:'Le DIO mesure les jours de consommation immobilisés en stock.', formula:'DIO ≈ Inventory / COGS × 365'},
+      {title:'DPO · fournisseurs', body:'Le DPO mesure le délai moyen de paiement fournisseurs. Un DPO plus élevé libère du cash à court terme, mais doit rester compatible avec les relations fournisseurs et les règles de paiement.', formula:'DPO ≈ Payables / Purchases or COGS × 365'},
+      {title:'Cash Conversion Cycle et leviers', body:'Le cycle de conversion du cash synthétise les trois composantes.', formula:'CCC ≈ DSO + DIO - DPO', bullets:['Clients : facturation rapide, litiges, recouvrement, conditions de paiement','Stocks : S&OP, MOQ, safety stock, obsolescence','Fournisseurs : négociation des termes et discipline de paiement']}
     ],
+    calculation:{title:'Impact cash d’un DSO',prompt:'CA annuel = 120 M€. Le DSO passe de 45 à 55 jours. À CA constant, quel cash approximatif est immobilisé en plus ?',hint:'10 jours de CA = CA / 365 × 10.',answer:'Environ 3,29 M€ de cash supplémentaire immobilisé.',steps:['Ventes par jour = 120 / 365 = 0,329 M€','Hausse DSO = 10 jours','Impact ≈ 0,329 × 10 = 3,29 M€']},
+    caseStudy:{title:'Mini-cas · croissance qui absorbe la trésorerie',scenario:'CA +15%, DSO de 48 à 62 jours, DIO de 55 à 70 jours, DPO stable à 45 jours. EBITDA en hausse.',questions:['Pourquoi le cash se dégrade-t-il ?','Quelles 3 actions lancer immédiatement ?'],correction:['Le cash conversion cycle augmente de 29 jours : davantage de cash est immobilisé dans clients et stocks.','Plan de recouvrement et litiges clients ; revue des stocks/S&OP ; cash forecast et gouvernance BFR avec responsables opérationnels.'],takeaway:'Le BFR est un sujet opérationnel piloté avec la finance, pas seulement un KPI comptable.'},
     quiz:[
       q('wc1','Le BFR simplifié est…',['Clients + stocks - fournisseurs','Cash + dette','CA - EBITDA','EBITDA - impôt'],0,'C’est la formule opérationnelle classique.'),
       q('wc2','Un DSO qui augmente signifie généralement…',['Encaissement plus lent','Paiement fournisseurs plus lent','Stock plus faible','Marge plus forte'],0,'Les clients mettent davantage de temps à payer.'),
       q('wc3','Une hausse du DPO a généralement quel effet immédiat sur le cash ?',['Positif','Négatif','Aucun','Impossible à dire'],0,'Payer les fournisseurs plus tard conserve du cash plus longtemps.'),
       q('wc4','Pourquoi la croissance peut-elle consommer du cash ?',['Parce qu’elle peut financer davantage de stocks et créances','Parce que l’EBITDA disparaît','Parce que le bilan baisse','Elle ne peut pas'],0,'Le financement du cycle d’exploitation augmente souvent avec l’activité.'),
+      q('wc5','DSO + DIO - DPO correspond approximativement à…',['Cash Conversion Cycle','EBITDA margin','Net debt','Current ratio'],0,'Le CCC mesure la durée nette d’immobilisation du cash dans le cycle d’exploitation.'),
+      q('wc6','CA 73 M€ : environ combien vaut 5 jours de CA ?',['0,1 M€','1,0 M€','5 M€','10 M€'],1,'73 / 365 × 5 ≈ 1,0 M€.')
     ]
   },
   {
-    slug:'margin-ebitda', level:1, order:8, title:'Marge brute, EBITDA et rentabilité', duration:22, difficulty:'Débutant', available:true,
-    description:'Analyser la rentabilité en masse, en taux et par driver.',
-    objectives:['Calculer plusieurs niveaux de marge','Comprendre operating leverage','Éviter de confondre croissance et création de valeur'],
+    slug:'margin-ebitda', level:1, order:8, title:'Marge brute, EBITDA et rentabilité', duration:32, difficulty:'Débutant', available:true,
+    description:'Analyser la rentabilité en masse, en taux, par driver et comprendre l’operating leverage.',
+    objectives:['Calculer plusieurs niveaux de marge','Comprendre EBITDA et contribution','Analyser masse et %','Comprendre l’operating leverage'],
     sections:[
-      {title:'Marge brute', body:'La marge brute mesure ce qui reste après les coûts directement liés aux produits ou services.', formula:'Gross Margin = Net Sales - Cost of Goods Sold'},
-      {title:'EBITDA', body:'L’EBITDA reflète la performance opérationnelle avant D&A, intérêts et impôts. Il est utile, mais ne représente pas le cash.', formula:'EBITDA margin = EBITDA / Net Sales'},
-      {title:'Operating leverage', body:'Quand une partie importante des coûts est fixe, une hausse de volume peut faire progresser l’EBITDA plus vite que le CA — et l’inverse en cas de baisse.', example:'Avec 20 M€ de coûts fixes, +5 M€ de marge contributive peut quasiment tomber intégralement en EBITDA.'}
+      {title:'Marge brute', body:'La marge brute mesure la valeur restante après les coûts directement liés aux ventes.', formula:'Gross Margin = Net Sales - COGS'},
+      {title:'Contribution margin', body:'Selon les entreprises, la contribution retranche les coûts variables ou directement attribuables pour mesurer ce que chaque vente apporte à la couverture des coûts fixes.', formula:'Contribution = Sales - Variable Costs'},
+      {title:'EBITDA', body:'L’EBITDA mesure la performance opérationnelle avant D&A, intérêts et impôts. Il est utile pour piloter, mais ne tient pas compte du BFR ni du capex.', formula:'EBITDA margin = EBITDA / Net Sales'},
+      {title:'Operating leverage', body:'Plus la part de coûts fixes est élevée, plus une variation de contribution a un effet amplifié sur l’EBITDA.', example:'Si les coûts fixes restent stables, +2 M€ de contribution peut ajouter presque +2 M€ d’EBITDA.'},
+      {title:'Analyser les drivers de marge', body:'Pour comprendre un mouvement d’EBITDA, on décompose les facteurs opérationnels.', bullets:['Prix et inflation','Volume et absorption','Mix client/produit','Productivité et achats','Coûts fixes et one-offs']}
     ],
+    calculation:{title:'Marge et levier opérationnel',prompt:'CA 100 M€, COGS 65 M€, Opex hors D&A 25 M€. L’année suivante la marge brute augmente de 4 M€ et les Opex de 1 M€. Calcule l’EBITDA des deux années et sa variation.',hint:'EBITDA = Gross Margin - Opex hors D&A.',answer:'Année 1 : 10 M€. Année 2 : 13 M€. Variation +3 M€.',steps:['GM1 = 100 - 65 = 35','EBITDA1 = 35 - 25 = 10','GM2 = 39 ; Opex2 = 26','EBITDA2 = 39 - 26 = 13']},
+    caseStudy:{title:'Mini-cas · marge % en baisse',scenario:'CA +8%, EBITDA +2% mais marge EBITDA de 15% à 14,2%.',questions:['La performance est-elle forcément mauvaise ?','Que veux-tu comprendre ?'],correction:['L’EBITDA en masse progresse, mais moins vite que le CA. La qualité relative se dilue. Il faut comprendre si c’est volontaire ou subi.','Mix, prix/coûts, phase de ramp-up, investissements commerciaux, coûts fixes temporaires et potentiel de retour futur.'],takeaway:'Un bon commentaire financier distingue croissance absolue et rentabilité relative.'},
     quiz:[
       q('me1','La marge brute correspond à…',['Ventes - COGS','Ventes - dette','Cash - capex','EBITDA - impôt'],0,'C’est la définition standard.'),
       q('me2','L’EBITDA est-il du cash ?',['Toujours','Non','Seulement en IFRS','Seulement si positif'],1,'Il ignore notamment BFR, capex, intérêts et impôts.'),
       q('me3','EBITDA = 12 et CA = 100. Marge EBITDA ?',['8%','12%','88%','120%'],1,'12 / 100 = 12%.'),
       q('me4','Une activité à coûts fixes élevés présente souvent…',['Un operating leverage élevé','Aucun risque de volume','Un BFR nul','Aucune marge'],0,'Le résultat est plus sensible aux variations de volume.'),
+      q('me5','Si la contribution augmente de 3 M€ et les coûts fixes de 1 M€, l’EBITDA varie de…',['+2 M€','+4 M€','-2 M€','0'],0,'À autres éléments constants, +3 de contribution -1 de coûts fixes = +2.'),
+      q('me6','EBITDA +5% et CA +15% implique généralement que…',['La marge EBITDA % se dilue','La marge EBITDA % augmente forcément','Le cash est +15%','Le BFR baisse'],0,'L’EBITDA croît moins vite que les ventes, donc le taux se contracte.')
     ]
   },
   {
-    slug:'fixed-variable-costs', level:1, order:9, title:'Coûts fixes, variables et seuil de rentabilité', duration:24, difficulty:'Débutant', available:true,
-    description:'Comprendre la structure de coûts et calculer un break-even.',
-    objectives:['Distinguer coûts fixes et variables','Calculer une contribution margin','Calculer un seuil de rentabilité'],
+    slug:'fixed-variable-costs', level:1, order:9, title:'Coûts fixes, variables et seuil de rentabilité', duration:32, difficulty:'Débutant', available:true,
+    description:'Comprendre la structure de coûts, la contribution, le break-even et la sensibilité au volume.',
+    objectives:['Distinguer coûts fixes et variables','Calculer une contribution margin','Calculer un seuil de rentabilité','Mesurer une marge de sécurité'],
     sections:[
-      {title:'Coûts variables', body:'Ils évoluent avec l’activité : matières, emballages ou commissions peuvent en faire partie.', formula:'Contribution = Sales - Variable Costs'},
-      {title:'Coûts fixes', body:'Ils restent relativement stables à court terme : loyers, certaines fonctions support, une partie des salaires.', bullets:['Fixes ne veut pas dire immuables','L’horizon d’analyse compte','Certains coûts sont semi-variables']},
-      {title:'Break-even', body:'Le seuil de rentabilité est le niveau de ventes nécessaire pour couvrir les coûts fixes.', formula:'Break-even sales = Fixed Costs / Contribution Margin %', example:'Coûts fixes 2 M€, taux de contribution 40% → break-even = 5 M€ de ventes.'}
+      {title:'Coûts variables', body:'Ils évoluent avec le niveau d’activité : matières, emballages, transport variable ou commissions peuvent en faire partie.', formula:'Contribution = Sales - Variable Costs'},
+      {title:'Coûts fixes', body:'Ils sont relativement stables sur l’horizon considéré : loyers, fonctions support ou certains salaires.', bullets:['Fixe ne veut pas dire immuable','La classification dépend de l’horizon','Certains coûts sont semi-variables ou par paliers']},
+      {title:'Taux de contribution', body:'Il indique la part de chaque euro de vente disponible pour absorber les coûts fixes puis générer du profit.', formula:'Contribution Margin % = Contribution / Sales'},
+      {title:'Break-even', body:'Le seuil de rentabilité est le niveau de ventes nécessaire pour couvrir les coûts fixes.', formula:'Break-even Sales = Fixed Costs / Contribution Margin %'},
+      {title:'Marge de sécurité et scénario', body:'La marge de sécurité mesure la distance entre les ventes prévues et le break-even. Plus elle est faible, plus l’activité est vulnérable à une baisse de volume.', formula:'Margin of Safety = Actual or Forecast Sales - Break-even Sales'}
     ],
+    calculation:{title:'Calcule le break-even',prompt:'Coûts fixes = 3 M€. Taux de contribution = 30%. Ventes prévues = 12 M€. Calcule le break-even et la marge de sécurité.',hint:'Break-even = coûts fixes / taux de contribution.',answer:'Break-even = 10 M€. Marge de sécurité = 2 M€.',steps:['3 / 30% = 10 M€','12 - 10 = 2 M€ de marge de sécurité']},
+    caseStudy:{title:'Mini-cas · baisse de volume',scenario:'Une usine a des coûts fixes élevés. Les volumes baissent de 12% alors que les prix et coûts variables unitaires sont stables.',questions:['Pourquoi l’EBITDA peut-il baisser plus de 12% ?','Quels leviers étudier ?'],correction:['La contribution baisse avec le volume alors que les coûts fixes ne baissent pas au même rythme : effet de levier opérationnel négatif.','Prix/mix, productivité, flexibilité des coûts, capacité, absorption, réduction de coûts fixes et scénario de volume.'],takeaway:'La structure de coûts détermine la sensibilité du résultat au volume.'},
     quiz:[
       q('fv1','Un coût variable…',['Évolue avec le volume','Ne change jamais','Est toujours un salaire','Est toujours un capex'],0,'Il est lié au niveau d’activité.'),
       q('fv2','Contribution margin =…',['Sales - variable costs','Sales - cash','EBITDA - capex','Assets - liabilities'],0,'Elle sert notamment à absorber les coûts fixes.'),
       q('fv3','Coûts fixes 3 M€, contribution 30%. Break-even sales ?',['1 M€','9 M€','10 M€','30 M€'],2,'3 / 30% = 10 M€.'),
       q('fv4','Pourquoi le seuil de rentabilité est utile ?',['Pour mesurer le volume nécessaire avant profit','Pour calculer la TVA','Pour valoriser les stocks uniquement','Pour calculer les intérêts'],0,'Il relie structure de coûts et activité minimale.'),
+      q('fv5','Ventes 12 M€, break-even 10 M€. Marge de sécurité ?',['2 M€','22 M€','0,2 M€','10 M€'],0,'12 - 10 = 2 M€.'),
+      q('fv6','À coûts fixes élevés, une baisse de volume peut…',['Amplifier la baisse d’EBITDA','Ne jamais toucher l’EBITDA','Augmenter mécaniquement la marge','Supprimer le BFR'],0,'La contribution baisse alors que les coûts fixes restent relativement stables.')
     ]
   },
   {
-    slug:'financial-statements-link', level:1, order:10, title:'Relier P&L, bilan et cash', duration:28, difficulty:'Débutant', available:true,
-    description:'Comprendre les ponts entre les trois états financiers.',
-    objectives:['Suivre une transaction dans les trois états','Comprendre résultat retenu et cash','Construire un raisonnement intégré'],
+    slug:'financial-statements-link', level:1, order:10, title:'Relier P&L, bilan et cash', duration:38, difficulty:'Débutant', available:true,
+    description:'Comprendre les ponts entre les trois états financiers et raisonner comme sur un mini-modèle intégré.',
+    objectives:['Suivre une transaction dans les trois états','Comprendre résultat retenu et cash','Relier capex, dette et amortissements','Construire un raisonnement intégré'],
     sections:[
-      {title:'Les états sont connectés', body:'Le résultat net alimente les capitaux propres, tandis que les variations du bilan expliquent une grande partie du cash-flow.'},
-      {title:'Exemple : vente à crédit', body:'Une vente à crédit augmente le CA et le résultat, mais aussi la créance client. Le cash n’augmente qu’au paiement.', example:'Jour 1 : Sales +100, AR +100. Jour 45 : AR -100, Cash +100.'},
-      {title:'Exemple : capex', body:'L’achat d’une machine réduit le cash et augmente les immobilisations. La charge arrive progressivement via les amortissements.', bullets:['Date d’achat : bilan + cash-flow','Périodes suivantes : depreciation au P&L','La dette peut aussi financer le capex']}
+      {title:'Les trois états sont connectés', body:'Le résultat net alimente les capitaux propres, tandis que les mouvements du bilan expliquent une grande partie du cash-flow.'},
+      {title:'Vente à crédit', body:'La vente augmente le CA et le résultat, mais crée une créance. Le cash n’arrive qu’au paiement.', example:'Jour 1 : Sales +100, AR +100. Jour 45 : AR -100, Cash +100.'},
+      {title:'Capex et amortissement', body:'L’achat d’une machine diminue le cash et augmente les immobilisations. Le P&L est impacté progressivement via les amortissements.', bullets:['Achat : cash-flow d’investissement négatif','Bilan : PPE augmente','Périodes suivantes : D&A au P&L et baisse progressive de la valeur nette comptable']},
+      {title:'Dette et intérêts', body:'Un nouvel emprunt augmente le cash et la dette sans créer de revenu. Les intérêts futurs affectent le P&L et le cash.', example:'Emprunt 5 M€ : Cash +5 / Debt +5. Puis intérêts : expense au P&L et cash outflow au paiement.'},
+      {title:'Le pont intégré', body:'Une analyse solide explique comment la performance opérationnelle se transforme en actifs/passifs puis en cash.', bullets:['Net income → retained earnings','ΔBFR → cash-flow opérationnel','Capex → actifs + cash-flow investissement','Dette/dividendes → financement']}
     ],
+    calculation:{title:'Transaction intégrée',prompt:'Une machine de 1,2 M€ est achetée cash au 1er janvier et amortie linéairement sur 4 ans, sans valeur résiduelle. Impact année 1 sur P&L, bilan et cash-flow ?',hint:'Sépare l’achat du capex et l’amortissement.',answer:'P&L : D&A 0,3 M€. Bilan fin d’année : PPE net +0,9 M€ vs avant achat et cash -1,2 M€ (hors autres flux). Cash-flow : CFI -1,2 M€ ; l’amortissement n’est pas une sortie de cash.',steps:['Capex initial = -1,2 M€ de cash et +1,2 M€ de PPE','D&A annuel = 1,2 / 4 = 0,3 M€','PPE net fin année = 0,9 M€','L’amortissement réduit EBIT mais est non cash']},
+    caseStudy:{title:'Mini-cas · profit mais dette en hausse',scenario:'Résultat net +6 M€, mais dette nette +4 M€. Dans le même temps : BFR +5 M€, capex 7 M€, dividendes 2 M€.',questions:['Comment est-ce possible ?','Quel message donner au COMEX ?'],correction:['Le résultat ne finance pas à lui seul les besoins : BFR, capex et dividendes consomment 14 M€ avant autres ajustements, donc un financement externe peut être nécessaire.','Le profit est positif mais la conversion cash est insuffisante ; il faut piloter BFR, capex et allocation du cash.'],takeaway:'Le DAF relie systématiquement résultat, bilan, cash et financement.'},
     quiz:[
       q('fs1','Une vente à crédit augmente immédiatement…',['Le cash uniquement','Le CA et les créances','La dette uniquement','Le capex'],1,'Le cash viendra plus tard.'),
       q('fs2','Un capex est généralement…',['Une charge intégrale immédiate au P&L','Un actif puis amorti','Toujours un dividende','Une créance client'],1,'L’investissement est capitalisé puis amorti selon sa durée d’utilité.'),
       q('fs3','Le résultat net contribue généralement à…',['Equity / retained earnings','Stocks uniquement','Dette uniquement','DSO'],0,'Les résultats non distribués renforcent les capitaux propres.'),
       q('fs4','Quelle approche est la plus solide ?',['Analyser chaque état séparément','Relier les trois états','Ignorer le bilan','Regarder uniquement le cash'],1,'Les interactions entre états expliquent la performance complète.'),
+      q('fs5','Un nouvel emprunt de 5 M€ augmente initialement…',['Cash et dette','CA et EBITDA','Stocks et COGS','Capex et D&A'],0,'Le financement augmente simultanément la trésorerie et le passif financier.'),
+      q('fs6','L’amortissement d’une machine est…',['Un décaissement récurrent égal à la charge','Une charge P&L non cash de la période','Un nouveau capex','Une créance'],1,'Le cash est sorti lors de l’investissement ; l’amortissement répartit le coût comptable.')
     ]
   },
   {
