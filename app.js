@@ -8,7 +8,8 @@
   const KEYS = {
     progress: 'daf-academy-v3-progress',
     activity: 'daf-academy-v3-activity',
-    session: 'daf-academy-v3-session'
+    session: 'daf-academy-v3-session',
+    aiHistory: 'daf-academy-v3-ai-history'
   };
 
   let state = {
@@ -18,6 +19,13 @@
     user: null,
     syncing: false,
     message: null
+  };
+
+  let assistantState = {
+    open: false,
+    loading: false,
+    error: '',
+    history: loadJson(KEYS.aiHistory, {})
   };
 
   let installPrompt = null;
@@ -56,6 +64,140 @@
 
   function moduleBySlug(slug) {
     return modules.find((m) => m.slug === slug);
+  }
+
+  function assistantMessages(slug) {
+    return Array.isArray(assistantState.history[slug]) ? assistantState.history[slug] : [];
+  }
+
+  function saveAssistantHistory(slug, messages) {
+    assistantState.history = {
+      ...assistantState.history,
+      [slug]: messages.slice(-20)
+    };
+    saveJson(KEYS.aiHistory, assistantState.history);
+  }
+
+  function assistantContext(r) {
+    if (!r || !['module', 'quiz'].includes(r.view) || !r.slug) return null;
+    const mod = moduleBySlug(r.slug);
+    if (!mod || !mod.available) return null;
+
+    const lessonText = (mod.sections || []).map((section, i) => {
+      const bits = [
+        `${i + 1}. ${section.title}`,
+        section.body || '',
+        section.formula ? `Formule : ${section.formula}` : '',
+        section.bullets?.length ? `Points clés : ${section.bullets.join(' | ')}` : '',
+        section.example ? `Exemple : ${section.example}` : ''
+      ].filter(Boolean);
+      return bits.join('\n');
+    }).join('\n\n');
+
+    const context = {
+      mode: r.view === 'quiz' ? 'quiz' : 'course',
+      moduleSlug: mod.slug,
+      moduleOrder: mod.order,
+      moduleTitle: mod.title,
+      moduleDescription: mod.description,
+      objectives: mod.objectives || [],
+      lesson: lessonText
+    };
+
+    if (r.view === 'quiz') {
+      const qs = getQuizState(r.slug);
+      const q = mod.quiz?.[qs.index];
+      if (q) {
+        context.quiz = {
+          questionNumber: qs.index + 1,
+          totalQuestions: mod.quiz.length,
+          question: q.question,
+          options: q.options,
+          selectedOption: qs.selected === null ? null : q.options[qs.selected],
+          finished: Boolean(qs.finished)
+        };
+      }
+    }
+    return context;
+  }
+
+  function assistantTextHtml(text) {
+    const safe = escapeHtml(text || '');
+    return safe
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function assistantHtml(r) {
+    const context = assistantContext(r);
+    if (!context) return '';
+    const messages = assistantMessages(context.moduleSlug);
+    const isQuiz = context.mode === 'quiz';
+
+    return `
+      <button class="ai-fab" id="aiFab" aria-label="Ouvrir Assistant DAF">✦ <span>Assistant DAF</span></button>
+      <aside class="ai-panel ${assistantState.open ? 'open' : ''}" id="aiPanel" aria-hidden="${assistantState.open ? 'false' : 'true'}">
+        <div class="ai-panel-head">
+          <div><span class="eyebrow">COACH IA</span><strong>Assistant DAF</strong><small>${escapeHtml(context.moduleTitle)}</small></div>
+          <button class="ai-close" id="aiClose" aria-label="Fermer">×</button>
+        </div>
+        <div class="ai-notice">${isQuiz ? 'Mode quiz : je donne des indices sans révéler la bonne réponse avant la fin.' : 'Je connais le cours affiché et peux l’expliquer autrement.'}</div>
+        <div class="ai-quick-actions">
+          <button data-ai-prompt="Explique-moi le point le plus important de cette page très simplement.">Expliquer simplement</button>
+          <button data-ai-prompt="Donne-moi un exemple chiffré concret adapté à un débutant.">Exemple chiffré</button>
+          ${isQuiz ? '<button data-ai-prompt="Donne-moi un indice pour la question actuelle sans me révéler la réponse.">Un indice</button>' : '<button data-ai-prompt="Pose-moi une petite question pour vérifier que j’ai compris ce cours.">Teste-moi</button>'}
+        </div>
+        <div class="ai-messages" id="aiMessages">
+          ${messages.length ? messages.map(m => `<div class="ai-msg ${m.role}"><div>${assistantTextHtml(m.text)}</div></div>`).join('') : `<div class="ai-empty"><strong>Pose ta question.</strong><span>Ex. « Pourquoi une hausse du DSO consomme du cash ? »</span></div>`}
+          ${assistantState.loading ? '<div class="ai-msg assistant"><div class="ai-typing"><i></i><i></i><i></i></div></div>' : ''}
+        </div>
+        ${assistantState.error ? `<div class="ai-error">${escapeHtml(assistantState.error)}</div>` : ''}
+        <form class="ai-form" id="aiForm">
+          <textarea id="aiInput" rows="2" maxlength="1200" placeholder="Pose une question sur ce cours…" ${assistantState.loading ? 'disabled' : ''}></textarea>
+          <button type="submit" class="button primary" ${assistantState.loading ? 'disabled' : ''}>Envoyer</button>
+        </form>
+        <div class="ai-footnote">Réponses générées par IA · évite d’y partager des données professionnelles confidentielles.</div>
+      </aside>`;
+  }
+
+  async function sendAssistantMessage(text) {
+    const r = route();
+    const context = assistantContext(r);
+    const message = String(text || '').trim();
+    if (!context || !message || assistantState.loading) return;
+
+    const oldMessages = assistantMessages(context.moduleSlug);
+    const nextMessages = [...oldMessages, { role: 'user', text: message }].slice(-20);
+    saveAssistantHistory(context.moduleSlug, nextMessages);
+    assistantState.loading = true;
+    assistantState.error = '';
+    assistantState.open = true;
+    render();
+
+    try {
+      const historyForApi = nextMessages.slice(-8, -1).map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        text: String(m.text || '').slice(0, 2000)
+      }));
+      const res = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, context, history: historyForApi })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Assistant momentanément indisponible.');
+      const finalMessages = [...nextMessages, { role: 'assistant', text: data.reply || 'Je n’ai pas réussi à formuler une réponse.' }];
+      saveAssistantHistory(context.moduleSlug, finalMessages);
+    } catch (err) {
+      assistantState.error = err?.message || 'Assistant momentanément indisponible.';
+    } finally {
+      assistantState.loading = false;
+      render();
+      requestAnimationFrame(() => {
+        const box = document.getElementById('aiMessages');
+        if (box) box.scrollTop = box.scrollHeight;
+      });
+    }
   }
 
   function progressFor(slug) {
@@ -673,7 +815,7 @@
     else if (r.view === 'quiz') body = renderQuiz(r.slug);
     else if (r.view === 'auth') body = renderAuth();
     else body = renderNotFound();
-    app.innerHTML = `${headerHtml()}${body}<footer class="footer">DAF Academy · V3 Clean · progression locale + synchronisation Supabase</footer>`;
+    app.innerHTML = `${headerHtml()}${body}${assistantHtml(r)}<footer class="footer">DAF Academy · V3.1 · progression Supabase + Assistant DAF</footer>`;
     bindEvents(r);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
@@ -685,6 +827,26 @@
   }
 
   function bindEvents(r) {
+    document.getElementById('aiFab')?.addEventListener('click', () => {
+      assistantState.open = true;
+      render();
+      requestAnimationFrame(() => document.getElementById('aiInput')?.focus());
+    });
+    document.getElementById('aiClose')?.addEventListener('click', () => {
+      assistantState.open = false;
+      render();
+    });
+    document.querySelectorAll('[data-ai-prompt]').forEach(btn => {
+      btn.addEventListener('click', () => sendAssistantMessage(btn.dataset.aiPrompt || ''));
+    });
+    document.getElementById('aiForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('aiInput');
+      const value = input?.value || '';
+      if (input) input.value = '';
+      sendAssistantMessage(value);
+    });
+
     document.getElementById('signOutBtn')?.addEventListener('click', signOut);
     document.getElementById('signOutPageBtn')?.addEventListener('click', signOut);
     document.getElementById('syncNowBtn')?.addEventListener('click', hydrateFromCloud);
@@ -777,7 +939,11 @@
     render();
   }
 
-  window.addEventListener('hashchange', render);
+  window.addEventListener('hashchange', () => {
+    const r = route();
+    if (!['module', 'quiz'].includes(r.view)) assistantState.open = false;
+    render();
+  });
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     installPrompt = e;
