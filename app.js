@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const { modules, levels } = window.DAF_DATA;
+  const { modules, levels, financeFormulas = [] } = window.DAF_DATA;
   const config = window.DAF_CONFIG || { url: '', key: '' };
   const cloudConfigured = Boolean(config.url && config.key && !config.url.includes('YOUR_') && !config.key.includes('YOUR_'));
 
@@ -10,7 +10,8 @@
     activity: 'daf-academy-v3-activity',
     session: 'daf-academy-v3-session',
     aiHistory: 'daf-academy-v3-ai-history',
-    learning: 'daf-academy-v4-learning'
+    learning: 'daf-academy-v4-learning',
+    tools: 'daf-academy-v5-tools'
   };
 
   let state = {
@@ -30,6 +31,8 @@
     history: loadJson(KEYS.aiHistory, {})
   };
 
+  const moduleTabs = {};
+  let toolsState = normalizeTools(loadJson(KEYS.tools, {}));
   let installPrompt = null;
 
   function loadJson(key, fallback) {
@@ -43,6 +46,31 @@
 
   function saveJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function normalizeTools(raw = {}) {
+    return {
+      open: null,
+      calculator: {
+        expression: raw?.calculator?.expression || '',
+        result: raw?.calculator?.result ?? '',
+        history: Array.isArray(raw?.calculator?.history) ? raw.calculator.history.slice(0, 12) : []
+      },
+      sheet: {
+        cells: raw?.sheet?.cells && typeof raw.sheet.cells === 'object' ? raw.sheet.cells : {},
+        selected: raw?.sheet?.selected || 'A1',
+        templateSlug: raw?.sheet?.templateSlug || ''
+      },
+      formulaCategory: raw?.formulaCategory || financeFormulas[0]?.category || ''
+    };
+  }
+
+  function saveTools() {
+    saveJson(KEYS.tools, {
+      calculator: toolsState.calculator,
+      sheet: toolsState.sheet,
+      formulaCategory: toolsState.formulaCategory
+    });
   }
 
   function normalizeLearning(raw = {}) {
@@ -748,18 +776,211 @@
     return { cls: 'new', label: 'À commencer' };
   }
 
+
+  function currentModuleTab(slug) {
+    return moduleTabs[slug] || 'course';
+  }
+
+  function moduleLevelProgress(mod) {
+    const levelMods = modules.filter(m => m.level === mod.level && m.available);
+    const done = levelMods.filter(m => progressFor(m.slug).completed).length;
+    return { done, total: levelMods.length, pct: levelMods.length ? Math.round(done / levelMods.length * 100) : 0 };
+  }
+
+  function renderCourseSidebar(mod) {
+    const level = levels.find(x => x.id === mod.level);
+    const mods = modules.filter(m => m.level === mod.level);
+    const lp = moduleLevelProgress(mod);
+    return `<aside class="course-sidebar">
+      <div class="sidebar-level"><span class="eyebrow">NIVEAU ${mod.level}</span><h3>${escapeHtml(level?.title || '')}</h3><div class="sidebar-progress"><span style="width:${lp.pct}%"></span></div><small>${lp.done}/${lp.total} modules disponibles validés</small></div>
+      <nav class="sidebar-modules">
+        ${mods.map(m => {
+          const mp = progressFor(m.slug);
+          const active = m.slug === mod.slug;
+          const icon = !m.available ? '🔒' : mp.completed ? '✓' : mp.lessonRead || mp.bestScore ? '◐' : '○';
+          return m.available
+            ? `<a class="sidebar-module ${active ? 'active' : ''} ${mp.completed ? 'done' : ''}" href="#/module/${m.slug}"><span>${icon}</span><div><b>${m.order}. ${escapeHtml(m.title)}</b><small>${mp.completed ? 'Terminé' : mp.bestScore ? `Quiz ${mp.bestScore}%` : mp.lessonRead ? 'Cours lu' : 'À découvrir'}</small></div></a>`
+            : `<div class="sidebar-module locked"><span>${icon}</span><div><b>${m.order}. ${escapeHtml(m.title)}</b><small>À venir</small></div></div>`;
+        }).join('')}
+      </nav>
+    </aside>`;
+  }
+
+  function exampleCards(mod) {
+    const examples = (mod.sections || []).filter(s => s.example).map(s => ({ title:s.title, text:s.example }));
+    if (mod.calculation?.steps?.length) examples.push({ title:`Exemple guidé · ${mod.calculation.title}`, text:mod.calculation.steps.join(' → ') });
+    return examples;
+  }
+
+  function renderCalculation(mod) {
+    if (!mod.calculation) return '<section class="empty-tab"><h2>Pas encore d’exercice de calcul.</h2></section>';
+    return `<section class="learning-exercise calculation-card workspace-exercise">
+      <div class="exercise-head"><span class="exercise-badge">CALCUL</span><span class="eyebrow">MISE EN PRATIQUE</span></div>
+      <h2>${escapeHtml(mod.calculation.title)}</h2>
+      <p class="exercise-prompt">${escapeHtml(mod.calculation.prompt)}</p>
+      ${mod.calculation.hint ? `<div class="exercise-hint"><strong>Indice</strong><span>${escapeHtml(mod.calculation.hint)}</span></div>` : ''}
+      <div class="exercise-tools"><span>Besoin de poser les calculs ?</span><button class="tool-chip" data-tool-open="calculator">🧮 Calculatrice</button><button class="tool-chip" data-tool-open="spreadsheet">▦ Mini-tableur</button><button class="tool-chip" data-tool-open="formulas">▤ Formules utiles</button></div>
+      <button class="button secondary reveal-btn" data-reveal="calc-${mod.slug}">Voir la correction</button>
+      <div class="exercise-correction hidden" id="calc-${mod.slug}"><strong>${escapeHtml(mod.calculation.answer)}</strong>${mod.calculation.steps?.length ? `<ol>${mod.calculation.steps.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ol>` : ''}</div>
+    </section>`;
+  }
+
+  function renderCaseStudy(mod) {
+    if (!mod.caseStudy) return '<section class="empty-tab"><h2>Pas encore de cas pratique.</h2></section>';
+    return `<section class="learning-exercise case-card workspace-exercise">
+      <div class="exercise-head"><span class="exercise-badge">CAS DAF</span><span class="eyebrow">RAISONNEMENT</span></div>
+      <h2>${escapeHtml(mod.caseStudy.title)}</h2>
+      <p class="exercise-prompt">${escapeHtml(mod.caseStudy.scenario)}</p>
+      <div class="case-questions">${(mod.caseStudy.questions || []).map((x,i) => `<div><b>${i+1}</b><span>${escapeHtml(x)}</span></div>`).join('')}</div>
+      <div class="exercise-tools"><span>Travaille comme en situation réelle.</span><button class="tool-chip" data-tool-open="spreadsheet">▦ Ouvrir le tableur</button><button class="tool-chip" data-ai-prompt="Challenge mon raisonnement sur ce cas sans me donner immédiatement la correction. Commence par me demander mon analyse.">✦ Challenger avec l’IA</button></div>
+      <button class="button secondary reveal-btn" data-reveal="case-${mod.slug}">Voir l’analyse DAF</button>
+      <div class="exercise-correction hidden" id="case-${mod.slug}">${(mod.caseStudy.correction || []).map((x,i) => `<p><strong>${i+1}.</strong> ${escapeHtml(x)}</p>`).join('')}${mod.caseStudy.takeaway ? `<div class="takeaway"><strong>Réflexe DAF</strong><span>${escapeHtml(mod.caseStudy.takeaway)}</span></div>` : ''}</div>
+    </section>`;
+  }
+
+  function renderModuleTab(mod, tab, p) {
+    if (tab === 'course') {
+      return `<section class="workspace-tab-panel"><div class="tab-heading"><div><span class="eyebrow">THÉORIE</span><h2>Comprendre avant de calculer.</h2></div><p>Un cours dense mais court : logique économique, formules, interprétation et réflexes de DAF.</p></div>
+        <div class="theory-stack">${(mod.sections || []).map((section,i) => `<article class="theory-card"><div class="theory-index">${String(i+1).padStart(2,'0')}</div><div><h3>${escapeHtml(section.title)}</h3><p>${escapeHtml(section.body)}</p>${section.formula ? `<div class="formula compact">${escapeHtml(section.formula)}</div>` : ''}${section.bullets?.length ? `<ul>${section.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>` : ''}</div></article>`).join('')}</div>
+        <div class="course-complete-bar"><div><strong>Théorie terminée ?</strong><span>Marque le cours comme lu pour avancer vers la validation.</span></div><button class="button ${p.lessonRead ? 'success' : 'secondary'}" id="markReadBtn">${p.lessonRead ? '✓ Cours marqué comme lu' : 'Marquer le cours comme lu'}</button></div>
+      </section>`;
+    }
+    if (tab === 'examples') {
+      const items = exampleCards(mod);
+      return `<section class="workspace-tab-panel"><div class="tab-heading"><div><span class="eyebrow">EXEMPLES</span><h2>Mettre les concepts en chiffres.</h2></div><p>Des exemples courts pour passer de la définition au raisonnement financier.</p></div><div class="example-grid-v2">${items.length ? items.map((x,i)=>`<article><span>${String(i+1).padStart(2,'0')}</span><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.text)}</p></article>`).join('') : '<p>Aucun exemple spécifique pour ce module.</p>'}</div></section>`;
+    }
+    if (tab === 'summary') {
+      const takeaways = mod.keyTakeaways?.length ? mod.keyTakeaways : mod.objectives || [];
+      const pitfalls = mod.pitfalls || [];
+      return `<section class="workspace-tab-panel"><div class="tab-heading"><div><span class="eyebrow">À RETENIR</span><h2>La fiche mentale du module.</h2></div><p>Les notions qui doivent rester après avoir fermé le cours.</p></div><div class="module-summary-grid"><article class="summary-box good"><h3>5 idées clés</h3>${takeaways.map(x=>`<div class="summary-line"><span>✓</span><p>${escapeHtml(x)}</p></div>`).join('')}</article><article class="summary-box warn"><h3>Pièges fréquents</h3>${pitfalls.length ? pitfalls.map(x=>`<div class="summary-line"><span>!</span><p>${escapeHtml(x)}</p></div>`).join('') : '<p>Pas de piège spécifique identifié.</p>'}</article><article class="summary-box objectives-box"><h3>Tu dois savoir…</h3>${(mod.objectives||[]).map(x=>`<div class="summary-line"><span>→</span><p>${escapeHtml(x)}</p></div>`).join('')}</article></div></section>`;
+    }
+    if (tab === 'calc') return `<section class="workspace-tab-panel">${renderCalculation(mod)}</section>`;
+    if (tab === 'case') return `<section class="workspace-tab-panel">${renderCaseStudy(mod)}</section>`;
+    if (tab === 'quiz') return `<section class="workspace-tab-panel quiz-launch"><span class="eyebrow">VALIDATION</span><h2>Teste ce que tu maîtrises vraiment.</h2><p>${mod.quiz?.length || 0} questions. Le module est validé avec un score ≥ 70% et le cours marqué comme lu.</p><div class="quiz-launch-score"><strong>${p.bestScore || 0}%</strong><span>meilleur score</span></div><a class="button primary" href="#/quiz/${mod.slug}">${p.bestScore ? 'Refaire le quiz' : 'Commencer le quiz'} →</a></section>`;
+    return '';
+  }
+
+  function openTool(name, r = route()) {
+    toolsState.open = name;
+    assistantState.open = false;
+    if (name === 'spreadsheet') {
+      const mod = r?.slug ? moduleBySlug(r.slug) : null;
+      const hasCells = Object.keys(toolsState.sheet.cells || {}).length > 0;
+      if (mod?.sheetTemplate && !hasCells) {
+        toolsState.sheet.cells = { ...(mod.sheetTemplate.cells || {}) };
+        toolsState.sheet.selected = 'A1';
+        toolsState.sheet.templateSlug = mod.slug;
+        saveTools();
+      }
+    }
+    render();
+  }
+
+  function closeTools() {
+    toolsState.open = null;
+    render();
+  }
+
+  function evalCalculator(expression) {
+    let clean = String(expression || '').trim().replace(/,/g,'.').replace(/×/g,'*').replace(/÷/g,'/');
+    clean = clean.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+    if (!clean || !/^[0-9+\-*/().\s]+$/.test(clean)) throw new Error('Expression non reconnue');
+    const result = Function(`"use strict";return (${clean})`)();
+    if (!Number.isFinite(result)) throw new Error('Résultat invalide');
+    return result;
+  }
+
+  function formatNumber(value) {
+    if (!Number.isFinite(value)) return '#ERR';
+    return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:4}).format(value);
+  }
+
+  const SHEET_COLS = ['A','B','C','D','E','F'];
+  const SHEET_ROWS = 12;
+
+  function rangeCellIds(start, end) {
+    const m1 = /^([A-F])(\d{1,2})$/.exec(start); const m2 = /^([A-F])(\d{1,2})$/.exec(end);
+    if (!m1 || !m2) return [];
+    const c1=SHEET_COLS.indexOf(m1[1]), c2=SHEET_COLS.indexOf(m2[1]);
+    const r1=Number(m1[2]), r2=Number(m2[2]); const out=[];
+    for (let r=Math.min(r1,r2); r<=Math.max(r1,r2); r++) for (let c=Math.min(c1,c2); c<=Math.max(c1,c2); c++) out.push(`${SHEET_COLS[c]}${r}`);
+    return out;
+  }
+
+  function sheetCellNumeric(id, stack = []) {
+    if (stack.includes(id)) return NaN;
+    const raw = String(toolsState.sheet.cells?.[id] ?? '').trim();
+    if (!raw) return 0;
+    if (raw.startsWith('=')) return evalSheetFormula(raw.slice(1), [...stack,id]);
+    const n = Number(raw.replace(/\s/g,'').replace(',','.'));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function evalSheetFormula(formula, stack = []) {
+    let expr = String(formula || '').toUpperCase();
+    expr = expr.replace(/(SUM|AVERAGE)\(([A-F]\d{1,2}):([A-F]\d{1,2})\)/g, (_,fn,a,b) => {
+      const vals=rangeCellIds(a,b).map(id=>sheetCellNumeric(id,stack)).filter(Number.isFinite);
+      const val=fn==='SUM' ? vals.reduce((x,y)=>x+y,0) : (vals.length ? vals.reduce((x,y)=>x+y,0)/vals.length : 0);
+      return `(${val})`;
+    });
+    expr = expr.replace(/\b([A-F]\d{1,2})\b/g, (_,id) => `(${sheetCellNumeric(id,stack)})`);
+    expr = expr.replace(/,/g,'.');
+    if (!/^[0-9+\-*/().\s]+$/.test(expr)) return NaN;
+    try { const v=Function(`"use strict";return (${expr})`)(); return Number.isFinite(v)?v:NaN; } catch (_) { return NaN; }
+  }
+
+  function sheetDisplay(id) {
+    const raw = String(toolsState.sheet.cells?.[id] ?? '');
+    if (!raw.startsWith('=')) return raw;
+    return formatNumber(evalSheetFormula(raw.slice(1),[id]));
+  }
+
+  function calculatorPanel() {
+    const c=toolsState.calculator;
+    return `<div class="tool-panel calculator-panel"><div class="tool-head"><div><span class="eyebrow">OUTILS</span><h2>Calculatrice finance</h2></div><button class="tool-close" data-tool-close>×</button></div><div class="calc-screen"><small>${escapeHtml(c.expression || 'Saisis un calcul')}</small><strong>${c.result === '' ? '0' : escapeHtml(c.result)}</strong></div><div class="calc-input-row"><input id="calcExpression" autocomplete="off" value="${escapeHtml(c.expression)}" placeholder="Ex. (120-78-25)/120*100"><button class="button primary" id="calcRun">=</button></div><div class="calc-keys">${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','(',')','+','%','CE'].map(k=>`<button data-calc-key="${k}">${k}</button>`).join('')}</div><div class="calc-history"><h3>Calculs récents</h3>${c.history.length ? c.history.map(x=>`<div><span>${escapeHtml(x.expression)}</span><b>${escapeHtml(x.result)}</b></div>`).join('') : '<p>Aucun calcul pour l’instant.</p>'}</div></div>`;
+  }
+
+  function spreadsheetPanel(r) {
+    const selected=toolsState.sheet.selected || 'A1';
+    const raw=String(toolsState.sheet.cells?.[selected] ?? '');
+    const mod=r?.slug ? moduleBySlug(r.slug) : null;
+    return `<div class="tool-panel sheet-panel"><div class="tool-head"><div><span class="eyebrow">OUTILS</span><h2>Mini-tableur</h2><small>${mod?.sheetTemplate?.title ? escapeHtml(mod.sheetTemplate.title) : '6 colonnes × 12 lignes · formules simples'}</small></div><button class="tool-close" data-tool-close>×</button></div><div class="sheet-toolbar"><button id="sheetReloadTemplate" ${mod?.sheetTemplate ? '' : 'disabled'}>↺ Charger l’exercice</button><button id="sheetClear">Effacer tout</button><span>Formules : =A1+B1 · =SUM(A1:B4) · =AVERAGE(A1:B4)</span></div><div class="sheet-formula"><b>fx</b><span>${selected}</span><input id="sheetFormulaInput" value="${escapeHtml(raw)}" placeholder="Valeur ou formule"><button id="sheetApply">Appliquer</button></div><div class="sheet-scroll"><table class="mini-sheet"><thead><tr><th></th>${SHEET_COLS.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${Array.from({length:SHEET_ROWS},(_,ri)=>{const row=ri+1;return `<tr><th>${row}</th>${SHEET_COLS.map(col=>{const id=`${col}${row}`;return `<td><button class="sheet-cell ${id===selected?'selected':''}" data-sheet-cell="${id}" title="${escapeHtml(String(toolsState.sheet.cells?.[id]??''))}">${escapeHtml(sheetDisplay(id))}</button></td>`}).join('')}</tr>`}).join('')}</tbody></table></div><div class="sheet-foot"><span>Les données restent sur cet appareil. Utilise ce tableur comme brouillon de calcul.</span></div></div>`;
+  }
+
+  function formulasPanel() {
+    const category=toolsState.formulaCategory || financeFormulas[0]?.category;
+    const current=financeFormulas.find(x=>x.category===category) || financeFormulas[0] || {items:[]};
+    return `<div class="tool-panel formulas-panel"><div class="tool-head"><div><span class="eyebrow">RÉFÉRENCE</span><h2>Formules utiles</h2></div><button class="tool-close" data-tool-close>×</button></div><div class="formula-layout"><nav>${financeFormulas.map(x=>`<button class="${x.category===current.category?'active':''}" data-formula-category="${escapeHtml(x.category)}">${escapeHtml(x.category)}</button>`).join('')}</nav><section>${current.items.map(x=>`<article class="formula-reference"><h3>${escapeHtml(x.name)}</h3><code>${escapeHtml(x.formula)}</code><p>${escapeHtml(x.note)}</p></article>`).join('')}</section></div></div>`;
+  }
+
+  function toolMenuPanel() {
+    return `<div class="tool-panel tool-menu-panel"><div class="tool-head"><div><span class="eyebrow">WORKSPACE</span><h2>Outils de calcul</h2></div><button class="tool-close" data-tool-close>×</button></div><div class="tool-menu-grid"><button data-tool-open="calculator"><span>🧮</span><b>Calculatrice</b><small>Calculs rapides, %, ratios</small></button><button data-tool-open="spreadsheet"><span>▦</span><b>Mini-tableur</b><small>Poser un cas et des formules</small></button><button data-tool-open="formulas"><span>▤</span><b>Formules utiles</b><small>BFR, marge, NPV, leverage…</small></button></div></div>`;
+  }
+
+  function toolsHtml(r) {
+    const showFab=['module','quiz','daily','review','exam'].includes(r?.view);
+    const overlay=toolsState.open ? `<div class="tool-overlay" id="toolOverlay"><div class="tool-backdrop" data-tool-close></div>${toolsState.open==='calculator'?calculatorPanel():toolsState.open==='spreadsheet'?spreadsheetPanel(r):toolsState.open==='formulas'?formulasPanel():toolMenuPanel()}</div>` : '';
+    return `${showFab ? '<button class="tools-fab" data-tool-open="menu">⌗ <span>Outils</span></button>' : ''}${overlay}`;
+  }
+
   function headerHtml() {
     const userLabel = state.user?.email || state.session?.user?.email || '';
+    const r = route();
+    const rank = rankInfo();
     return `
-      <header class="topbar">
+      <header class="topbar topbar-v2">
         <a class="brand" href="#/" aria-label="DAF Academy accueil">
           <span class="brand-mark">DAF</span>
           <span><strong>Academy</strong><small>Finance → CFO</small></span>
         </a>
-        <div class="header-stats">
-          <div><b>${state.activity.xp || 0}</b><span>XP</span></div>
-          <div><b>${state.activity.streak || 0}</b><span>jours</span></div>
-        </div>
+        <nav class="main-nav">
+          <a href="#/">⌂ Accueil</a>
+          <a href="#/">◫ Parcours</a>
+          <a href="#/exam/1">▣ Examens</a>
+          <button data-tool-open="menu">⌗ Outils</button>
+          ${['module','quiz'].includes(r.view) ? '<button data-ai-open>✦ Assistant DAF</button>' : ''}
+        </nav>
+        <div class="header-stats header-stats-v2"><div><b>🔥 ${state.activity.streak || 0}</b><span>jours</span></div><div class="rank-pill"><b>${escapeHtml(rank.current.name)}</b><span>${state.activity.xp || 0} XP</span></div></div>
         <div class="header-actions">
           ${state.syncing ? '<span class="syncing">Synchronisation…</span>' : ''}
           ${installPrompt ? '<button class="text-btn" id="installBtn">Installer</button>' : ''}
@@ -868,66 +1089,20 @@
     const mod = moduleBySlug(slug);
     if (!mod || !mod.available) return renderNotFound();
     const p = progressFor(slug);
+    const tab = currentModuleTab(slug);
+    const tabs=[['course','Cours'],['examples','Exemple'],['summary','À retenir'],['calc','Calcul'],['case','Cas pratique'],['quiz','Quiz']];
     return `
-      <main class="lesson-shell">
+      <main class="workspace-shell">
         ${messageHtml()}
-        <a class="back-link" href="#/">← Retour au parcours</a>
-        <section class="lesson-hero">
-          <div>
-            <span class="eyebrow">MODULE ${mod.order} · NIVEAU ${mod.level}</span>
-            <h1>${escapeHtml(mod.title)}</h1>
-            <p>${escapeHtml(mod.description)}</p>
-            <div class="module-meta big"><span>${mod.duration} min</span><span>${escapeHtml(mod.difficulty)}</span>${p.bestScore ? `<span>Meilleur quiz : ${p.bestScore}%</span>` : ''}</div>
-          </div>
-          <div class="lesson-state ${p.completed ? 'complete' : ''}">
-            <strong>${p.completed ? '✓ Validé' : p.lessonRead ? 'Cours lu' : 'À commencer'}</strong>
-            <span>Validation : cours lu + quiz ≥ 70%</span>
-          </div>
-        </section>
-
-        <section class="objectives">
-          <span class="eyebrow">OBJECTIFS</span>
-          <div>${(mod.objectives || []).map(o => `<span>✓ ${escapeHtml(o)}</span>`).join('')}</div>
-        </section>
-
-        <section class="lesson-content">
-          ${(mod.sections || []).map((section, i) => `
-            <article class="lesson-section">
-              <span class="section-n">${String(i + 1).padStart(2, '0')}</span>
-              <h2>${escapeHtml(section.title)}</h2>
-              <p>${escapeHtml(section.body)}</p>
-              ${section.formula ? `<div class="formula">${escapeHtml(section.formula)}</div>` : ''}
-              ${section.bullets ? `<ul>${section.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>` : ''}
-              ${section.example ? `<div class="example"><strong>Exemple</strong><p>${escapeHtml(section.example)}</p></div>` : ''}
-            </article>`).join('')}
-        </section>
-
-        ${mod.calculation ? `
-        <section class="learning-exercise calculation-card">
-          <div class="exercise-head"><span class="exercise-badge">CALCUL</span><span class="eyebrow">MISE EN PRATIQUE</span></div>
-          <h2>${escapeHtml(mod.calculation.title)}</h2>
-          <p class="exercise-prompt">${escapeHtml(mod.calculation.prompt)}</p>
-          ${mod.calculation.hint ? `<div class="exercise-hint"><strong>Indice</strong><span>${escapeHtml(mod.calculation.hint)}</span></div>` : ''}
-          <button class="button secondary reveal-btn" data-reveal="calc-${mod.slug}">Voir la correction</button>
-          <div class="exercise-correction hidden" id="calc-${mod.slug}"><strong>${escapeHtml(mod.calculation.answer)}</strong>${mod.calculation.steps?.length ? `<ol>${mod.calculation.steps.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ol>` : ''}</div>
-        </section>` : ''}
-
-        ${mod.caseStudy ? `
-        <section class="learning-exercise case-card">
-          <div class="exercise-head"><span class="exercise-badge">CAS DAF</span><span class="eyebrow">RAISONNEMENT</span></div>
-          <h2>${escapeHtml(mod.caseStudy.title)}</h2>
-          <p class="exercise-prompt">${escapeHtml(mod.caseStudy.scenario)}</p>
-          <div class="case-questions">${(mod.caseStudy.questions || []).map((x,i) => `<div><b>${i+1}</b><span>${escapeHtml(x)}</span></div>`).join('')}</div>
-          <button class="button secondary reveal-btn" data-reveal="case-${mod.slug}">Voir l’analyse DAF</button>
-          <div class="exercise-correction hidden" id="case-${mod.slug}">${(mod.caseStudy.correction || []).map((x,i) => `<p><strong>${i+1}.</strong> ${escapeHtml(x)}</p>`).join('')}${mod.caseStudy.takeaway ? `<div class="takeaway"><strong>Réflexe DAF</strong><span>${escapeHtml(mod.caseStudy.takeaway)}</span></div>` : ''}</div>
-        </section>` : ''}
-
-        <section class="lesson-footer-card">
-          <div><span class="eyebrow">ÉTAPE SUIVANTE</span><h2>Valide ce que tu viens d’apprendre.</h2><p>Le module est validé une fois le cours lu et le quiz réussi à 70% minimum.</p></div>
-          <div class="lesson-actions">
-            <button class="button ${p.lessonRead ? 'success' : 'secondary'}" id="markReadBtn">${p.lessonRead ? '✓ Cours marqué comme lu' : 'Marquer le cours comme lu'}</button>
-            <a class="button primary" href="#/quiz/${mod.slug}">Faire le quiz →</a>
-          </div>
+        ${renderCourseSidebar(mod)}
+        <section class="workspace-main">
+          <div class="workspace-breadcrumb"><a href="#/">Finance Foundations</a><span>›</span><span>${mod.order}. ${escapeHtml(mod.title)}</span></div>
+          <section class="workspace-hero">
+            <div><span class="eyebrow">MODULE ${mod.order} · NIVEAU ${mod.level}</span><h1>${escapeHtml(mod.title)}</h1><p>${escapeHtml(mod.description)}</p></div>
+            <div class="workspace-status ${p.completed?'complete':''}"><strong>${p.completed?'✓ Validé':p.lessonRead?'Cours lu':'En cours'}</strong><span>${mod.duration} min · ${escapeHtml(mod.difficulty)}</span>${p.bestScore?`<small>Quiz ${p.bestScore}%</small>`:''}</div>
+          </section>
+          <nav class="module-tabs">${tabs.map(([id,label])=>`<button class="${tab===id?'active':''}" data-module-tab="${id}">${label}${id==='course'&&p.lessonRead?' <i>✓</i>':''}${id==='quiz'&&p.bestScore>=70?' <i>✓</i>':''}</button>`).join('')}</nav>
+          <div class="workspace-body">${renderModuleTab(mod,tab,p)}</div>
         </section>
       </main>`;
   }
@@ -1173,7 +1348,7 @@
     else if (['daily', 'review', 'exam'].includes(r.view)) body = renderPractice(r);
     else if (r.view === 'auth') body = renderAuth();
     else body = renderNotFound();
-    app.innerHTML = `${headerHtml()}${body}${assistantHtml(r)}<footer class="footer">DAF Academy · V4 Phase A · cours enrichis + révision + Daily Challenge + examen + Assistant DAF</footer>`;
+    app.innerHTML = `${headerHtml()}${body}${assistantHtml(r)}${toolsHtml(r)}<footer class="footer">DAF Academy · Phase A.1 · workspace + outils de calcul + théorie renforcée + Assistant DAF</footer>`;
     bindEvents(r);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
@@ -1185,8 +1360,61 @@
   }
 
   function bindEvents(r) {
+    document.querySelectorAll('[data-ai-open]').forEach(btn => btn.addEventListener('click', () => {
+      assistantState.open = true;
+      toolsState.open = null;
+      render();
+      requestAnimationFrame(() => document.getElementById('aiInput')?.focus());
+    }));
+    document.querySelectorAll('[data-tool-open]').forEach(btn => btn.addEventListener('click', () => openTool(btn.dataset.toolOpen || 'menu', r)));
+    document.querySelectorAll('[data-tool-close]').forEach(btn => btn.addEventListener('click', closeTools));
+    document.querySelectorAll('[data-module-tab]').forEach(btn => btn.addEventListener('click', () => {
+      if (!r.slug) return;
+      moduleTabs[r.slug] = btn.dataset.moduleTab || 'course';
+      render();
+    }));
+    document.querySelectorAll('[data-formula-category]').forEach(btn => btn.addEventListener('click', () => {
+      toolsState.formulaCategory = btn.dataset.formulaCategory || financeFormulas[0]?.category || '';
+      saveTools(); render();
+    }));
+    document.querySelectorAll('[data-calc-key]').forEach(btn => btn.addEventListener('click', () => {
+      const key=btn.dataset.calcKey;
+      if (key==='CE') { toolsState.calculator.expression=''; toolsState.calculator.result=''; }
+      else toolsState.calculator.expression += key;
+      saveTools(); render();
+    }));
+    const runCalc=() => {
+      const input=document.getElementById('calcExpression');
+      const expression=input?.value ?? toolsState.calculator.expression;
+      toolsState.calculator.expression=expression;
+      try {
+        const value=evalCalculator(expression); const formatted=formatNumber(value);
+        toolsState.calculator.result=formatted;
+        toolsState.calculator.history=[{expression,result:formatted},...toolsState.calculator.history.filter(x=>x.expression!==expression)].slice(0,8);
+      } catch (err) { toolsState.calculator.result='Erreur'; }
+      saveTools(); render();
+    };
+    document.getElementById('calcRun')?.addEventListener('click',runCalc);
+    document.getElementById('calcExpression')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runCalc();}});
+    document.querySelectorAll('[data-sheet-cell]').forEach(btn => btn.addEventListener('click', () => {
+      toolsState.sheet.selected=btn.dataset.sheetCell; saveTools(); render();
+      requestAnimationFrame(()=>{const x=document.getElementById('sheetFormulaInput');x?.focus();x?.select();});
+    }));
+    const applySheet=() => {
+      const input=document.getElementById('sheetFormulaInput'); const id=toolsState.sheet.selected;
+      if (!input || !id) return;
+      const value=input.value;
+      if (value==='') delete toolsState.sheet.cells[id]; else toolsState.sheet.cells[id]=value;
+      saveTools(); render();
+    };
+    document.getElementById('sheetApply')?.addEventListener('click',applySheet);
+    document.getElementById('sheetFormulaInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applySheet();}});
+    document.getElementById('sheetClear')?.addEventListener('click',()=>{ if(confirm('Effacer le mini-tableur ?')){toolsState.sheet={cells:{},selected:'A1',templateSlug:''};saveTools();render();} });
+    document.getElementById('sheetReloadTemplate')?.addEventListener('click',()=>{const mod=r.slug?moduleBySlug(r.slug):null;if(mod?.sheetTemplate){toolsState.sheet={cells:{...(mod.sheetTemplate.cells||{})},selected:'A1',templateSlug:mod.slug};saveTools();render();}});
+
     document.getElementById('aiFab')?.addEventListener('click', () => {
       assistantState.open = true;
+      toolsState.open = null;
       render();
       requestAnimationFrame(() => document.getElementById('aiInput')?.focus());
     });
@@ -1332,6 +1560,7 @@
   window.addEventListener('hashchange', () => {
     const r = route();
     if (!['module', 'quiz'].includes(r.view)) assistantState.open = false;
+    toolsState.open = null;
     render();
   });
   window.addEventListener('beforeinstallprompt', (e) => {
