@@ -9,12 +9,14 @@
     progress: 'daf-academy-v3-progress',
     activity: 'daf-academy-v3-activity',
     session: 'daf-academy-v3-session',
-    aiHistory: 'daf-academy-v3-ai-history'
+    aiHistory: 'daf-academy-v3-ai-history',
+    learning: 'daf-academy-v4-learning'
   };
 
   let state = {
     progress: loadJson(KEYS.progress, {}),
     activity: loadJson(KEYS.activity, { xp: 0, streak: 0, lastActive: null }),
+    learning: normalizeLearning(loadJson(KEYS.learning, {})),
     session: loadJson(KEYS.session, null),
     user: null,
     syncing: false,
@@ -43,6 +45,63 @@
     localStorage.setItem(key, JSON.stringify(value));
   }
 
+  function normalizeLearning(raw = {}) {
+    return {
+      review: raw && typeof raw.review === 'object' ? raw.review : {},
+      daily: raw && typeof raw.daily === 'object' ? raw.daily : {},
+      exams: raw && typeof raw.exams === 'object' ? raw.exams : {},
+      updatedAt: raw?.updatedAt || new Date(0).toISOString()
+    };
+  }
+
+  function saveLearning({ sync = true } = {}) {
+    state.learning.updatedAt = new Date().toISOString();
+    saveJson(KEYS.learning, state.learning);
+    if (sync && state.user && cloudConfigured) {
+      cloudUpsertLearningState().catch(reportCloudError);
+    }
+  }
+
+  function mergeLearningStates(localRaw, remoteRaw) {
+    const local = normalizeLearning(localRaw);
+    const remote = normalizeLearning(remoteRaw);
+    const merged = normalizeLearning({});
+
+    const reviewIds = new Set([...Object.keys(local.review), ...Object.keys(remote.review)]);
+    for (const id of reviewIds) {
+      const a = local.review[id];
+      const b = remote.review[id];
+      if (!a) merged.review[id] = b;
+      else if (!b) merged.review[id] = a;
+      else merged.review[id] = new Date(a.updatedAt || 0) >= new Date(b.updatedAt || 0) ? a : b;
+    }
+
+    const days = new Set([...Object.keys(local.daily), ...Object.keys(remote.daily)]);
+    for (const day of days) {
+      const a = local.daily[day] || {};
+      const b = remote.daily[day] || {};
+      merged.daily[day] = {
+        score: Math.max(a.score || 0, b.score || 0),
+        completed: Boolean(a.completed || b.completed),
+        updatedAt: new Date(a.updatedAt || 0) >= new Date(b.updatedAt || 0) ? (a.updatedAt || b.updatedAt) : (b.updatedAt || a.updatedAt)
+      };
+    }
+
+    const examIds = new Set([...Object.keys(local.exams), ...Object.keys(remote.exams)]);
+    for (const id of examIds) {
+      const a = local.exams[id] || {};
+      const b = remote.exams[id] || {};
+      merged.exams[id] = {
+        bestScore: Math.max(a.bestScore || 0, b.bestScore || 0),
+        attempts: Math.max(a.attempts || 0, b.attempts || 0),
+        passed: Boolean(a.passed || b.passed),
+        updatedAt: new Date(a.updatedAt || 0) >= new Date(b.updatedAt || 0) ? (a.updatedAt || b.updatedAt) : (b.updatedAt || a.updatedAt)
+      };
+    }
+    merged.updatedAt = new Date(local.updatedAt || 0) >= new Date(remote.updatedAt || 0) ? local.updatedAt : remote.updatedAt;
+    return merged;
+  }
+
   function escapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -52,18 +111,134 @@
       .replace(/'/g, '&#039;');
   }
 
+  function dateKey(d = new Date()) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   function today() {
-    return new Date().toISOString().slice(0, 10);
+    return dateKey(new Date());
   }
 
   function yesterday() {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
+    return dateKey(d);
   }
 
   function moduleBySlug(slug) {
     return modules.find((m) => m.slug === slug);
+  }
+
+  const RANKS = [
+    { name: 'Analyst', min: 0 },
+    { name: 'Junior Controller', min: 300 },
+    { name: 'Controller', min: 700 },
+    { name: 'Finance Manager', min: 1400 },
+    { name: 'Head of Finance', min: 2500 },
+    { name: 'CFO', min: 4000 }
+  ];
+
+  function rankInfo() {
+    const xp = state.activity.xp || 0;
+    let current = RANKS[0];
+    let next = null;
+    for (let i = 0; i < RANKS.length; i += 1) {
+      if (xp >= RANKS[i].min) current = RANKS[i];
+      else { next = RANKS[i]; break; }
+    }
+    const previousMin = current.min;
+    const span = next ? Math.max(1, next.min - previousMin) : 1;
+    const pct = next ? Math.max(0, Math.min(100, Math.round(((xp - previousMin) / span) * 100))) : 100;
+    return { current, next, pct, xp };
+  }
+
+  function questionBank(predicate = () => true) {
+    const out = [];
+    for (const mod of modules.filter(m => m.available)) {
+      for (const question of (mod.quiz || [])) {
+        if (predicate(mod, question)) out.push({ moduleSlug: mod.slug, moduleTitle: mod.title, question });
+      }
+    }
+    return out;
+  }
+
+  function findQuestionById(id) {
+    return questionBank().find(item => item.question.id === id) || null;
+  }
+
+  function hashString(value) {
+    let h = 2166136261;
+    for (let i = 0; i < value.length; i += 1) {
+      h ^= value.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function seededShuffle(items, seedText) {
+    const a = [...items];
+    let seed = hashString(seedText) || 1;
+    function rnd() {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 4294967296;
+    }
+    for (let i = a.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function dailyItems() {
+    return seededShuffle(questionBank(), `daily-${today()}`).slice(0, 5);
+  }
+
+  function levelExamItems(levelId) {
+    const levelModules = modules.filter(m => m.available && m.level === Number(levelId)).slice(0, 10);
+    const out = [];
+    for (const mod of levelModules) {
+      const items = questionBank((m) => m.slug === mod.slug);
+      out.push(...seededShuffle(items, `exam-${levelId}-${mod.slug}-v1`).slice(0, 2));
+    }
+    return out;
+  }
+
+  function activeReviewItems(limit = 10) {
+    return Object.entries(state.learning.review || {})
+      .filter(([, item]) => item?.active)
+      .sort((a, b) => (b[1].misses || 0) - (a[1].misses || 0) || new Date(a[1].updatedAt || 0) - new Date(b[1].updatedAt || 0))
+      .map(([id]) => findQuestionById(id))
+      .filter(Boolean)
+      .slice(0, limit);
+  }
+
+  function reviewCount() {
+    return Object.values(state.learning.review || {}).filter(item => item?.active).length;
+  }
+
+  function recordQuestionOutcome(item, isCorrect) {
+    if (!item?.question?.id) return;
+    const id = item.question.id;
+    const existing = state.learning.review[id];
+    const now = new Date().toISOString();
+    if (isCorrect) {
+      if (existing) state.learning.review[id] = { ...existing, active: false, updatedAt: now };
+      return;
+    }
+    state.learning.review[id] = {
+      moduleSlug: item.moduleSlug,
+      active: true,
+      misses: (existing?.misses || 0) + 1,
+      updatedAt: now
+    };
+  }
+
+  function recordAnswerSet(items, answers) {
+    items.forEach((item, i) => recordQuestionOutcome(item, answers[i] === item.question.correctIndex));
+    saveLearning();
   }
 
   function assistantMessages(slug) {
@@ -94,6 +269,11 @@
       return bits.join('\n');
     }).join('\n\n');
 
+    const extraLesson = [
+      mod.calculation ? `Exercice de calcul : ${mod.calculation.prompt}\nCorrection : ${mod.calculation.answer}` : '',
+      mod.caseStudy ? `Mini-cas : ${mod.caseStudy.scenario}\nQuestions : ${(mod.caseStudy.questions || []).join(' | ')}\nCorrection : ${(mod.caseStudy.correction || []).join(' | ')}` : ''
+    ].filter(Boolean).join('\n\n');
+
     const context = {
       mode: r.view === 'quiz' ? 'quiz' : 'course',
       moduleSlug: mod.slug,
@@ -101,7 +281,7 @@
       moduleTitle: mod.title,
       moduleDescription: mod.description,
       objectives: mod.objectives || [],
-      lesson: lessonText
+      lesson: [lessonText, extraLesson].filter(Boolean).join('\n\n')
     };
 
     if (r.view === 'quiz') {
@@ -426,6 +606,21 @@
     if (!res.ok) throw new Error(await readableError(res));
   }
 
+  async function cloudUpsertLearningState() {
+    const userId = state.user?.id || state.session?.user?.id;
+    if (!userId) return;
+    const res = await restFetch('learning_state?on_conflict=user_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: userId,
+        state: state.learning,
+        updated_at: state.learning.updatedAt || new Date().toISOString()
+      })
+    });
+    if (!res.ok) throw new Error(await readableError(res));
+  }
+
   async function hydrateFromCloud() {
     if (!cloudConfigured || !state.session) return;
     state.syncing = true;
@@ -446,15 +641,18 @@
         }
       }
 
-      const [progressRes, statsRes] = await Promise.all([
+      const [progressRes, statsRes, learningRes] = await Promise.all([
         restFetch('user_progress?select=*'),
-        restFetch('user_stats?select=*')
+        restFetch('user_stats?select=*'),
+        restFetch('learning_state?select=*')
       ]);
       if (!progressRes.ok) throw new Error(await readableError(progressRes));
       if (!statsRes.ok) throw new Error(await readableError(statsRes));
+      if (!learningRes.ok) throw new Error(await readableError(learningRes));
 
       const rows = await progressRes.json();
       const statsRows = await statsRes.json();
+      const learningRows = await learningRes.json();
       const cloud = {};
       for (const r of rows || []) {
         cloud[r.module_slug] = {
@@ -504,6 +702,10 @@
         };
         saveJson(KEYS.activity, state.activity);
       }
+      const cloudLearning = learningRows?.[0]?.state || {};
+      state.learning = mergeLearningStates(state.learning, cloudLearning);
+      saveJson(KEYS.learning, state.learning);
+      await cloudUpsertLearningState();
       await cloudUpsertStats();
       state.message = { type: 'success', text: 'Progression synchronisée.' };
     } finally {
@@ -578,6 +780,12 @@
   function renderHome() {
     const stats = dashboardStats();
     const next = modules.find((m) => m.available && !progressFor(m.slug).completed) || modules.find((m) => m.available);
+    const rank = rankInfo();
+    const daily = state.learning.daily[today()] || {};
+    const reviews = reviewCount();
+    const level1Done = modules.filter(m => m.available && m.level === 1 && progressFor(m.slug).completed).length;
+    const exam = state.learning.exams['1'] || {};
+    const examUnlocked = level1Done >= 8;
     return `
       <main class="page-shell">
         ${messageHtml()}
@@ -604,8 +812,14 @@
 
         <section class="summary-grid">
           <div class="metric-card"><span>Progression</span><strong>${stats.percent}%</strong><small>${stats.completed} modules validés</small></div>
-          <div class="metric-card"><span>Expérience</span><strong>${state.activity.xp || 0} XP</strong><small>+20 cours · +10 quiz · +50 validation</small></div>
-          <div class="metric-card"><span>Série</span><strong>${state.activity.streak || 0} jour${(state.activity.streak || 0) > 1 ? 's' : ''}</strong><small>Une activité par jour suffit</small></div>
+          <div class="metric-card rank-card"><span>Niveau</span><strong>${escapeHtml(rank.current.name)}</strong><small>${rank.next ? `${rank.xp}/${rank.next.min} XP vers ${escapeHtml(rank.next.name)}` : `${rank.xp} XP · niveau maximum`}</small><div class="rank-progress"><span style="width:${rank.pct}%"></span></div></div>
+          <div class="metric-card"><span>Série</span><strong>${state.activity.streak || 0} jour${(state.activity.streak || 0) > 1 ? 's' : ''}</strong><small>${state.activity.xp || 0} XP au total</small></div>
+        </section>
+
+        <section class="learning-actions">
+          <a class="learning-action ${daily.completed ? 'done' : ''}" href="#/daily"><span class="action-icon">⚡</span><div><span class="eyebrow">AUJOURD’HUI</span><h3>Daily Challenge</h3><p>${daily.completed ? `Terminé · meilleur score ${daily.score || 0}%` : '5 questions · environ 5 minutes'}</p></div><b>${daily.completed ? '✓' : '→'}</b></a>
+          <a class="learning-action ${reviews ? '' : 'muted'}" href="#/review"><span class="action-icon">↻</span><div><span class="eyebrow">RÉVISION</span><h3>Questions à revoir</h3><p>${reviews ? `${reviews} question${reviews > 1 ? 's' : ''} dans ta file` : 'Aucune erreur à revoir pour l’instant'}</p></div><b>→</b></a>
+          <a class="learning-action ${exam.passed ? 'done' : examUnlocked ? '' : 'locked-action'}" href="${examUnlocked ? '#/exam/1' : '#/'}"><span class="action-icon">🎓</span><div><span class="eyebrow">NIVEAU 1</span><h3>Finance Foundations Exam</h3><p>${exam.passed ? `Réussi · ${exam.bestScore || 0}%` : examUnlocked ? '20 questions · réussite à 75%' : `Débloqué à 8/10 modules · ${level1Done}/10`}</p></div><b>${exam.passed ? '✓' : examUnlocked ? '→' : '🔒'}</b></a>
         </section>
 
         <section class="curriculum">
@@ -688,6 +902,26 @@
             </article>`).join('')}
         </section>
 
+        ${mod.calculation ? `
+        <section class="learning-exercise calculation-card">
+          <div class="exercise-head"><span class="exercise-badge">CALCUL</span><span class="eyebrow">MISE EN PRATIQUE</span></div>
+          <h2>${escapeHtml(mod.calculation.title)}</h2>
+          <p class="exercise-prompt">${escapeHtml(mod.calculation.prompt)}</p>
+          ${mod.calculation.hint ? `<div class="exercise-hint"><strong>Indice</strong><span>${escapeHtml(mod.calculation.hint)}</span></div>` : ''}
+          <button class="button secondary reveal-btn" data-reveal="calc-${mod.slug}">Voir la correction</button>
+          <div class="exercise-correction hidden" id="calc-${mod.slug}"><strong>${escapeHtml(mod.calculation.answer)}</strong>${mod.calculation.steps?.length ? `<ol>${mod.calculation.steps.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ol>` : ''}</div>
+        </section>` : ''}
+
+        ${mod.caseStudy ? `
+        <section class="learning-exercise case-card">
+          <div class="exercise-head"><span class="exercise-badge">CAS DAF</span><span class="eyebrow">RAISONNEMENT</span></div>
+          <h2>${escapeHtml(mod.caseStudy.title)}</h2>
+          <p class="exercise-prompt">${escapeHtml(mod.caseStudy.scenario)}</p>
+          <div class="case-questions">${(mod.caseStudy.questions || []).map((x,i) => `<div><b>${i+1}</b><span>${escapeHtml(x)}</span></div>`).join('')}</div>
+          <button class="button secondary reveal-btn" data-reveal="case-${mod.slug}">Voir l’analyse DAF</button>
+          <div class="exercise-correction hidden" id="case-${mod.slug}">${(mod.caseStudy.correction || []).map((x,i) => `<p><strong>${i+1}.</strong> ${escapeHtml(x)}</p>`).join('')}${mod.caseStudy.takeaway ? `<div class="takeaway"><strong>Réflexe DAF</strong><span>${escapeHtml(mod.caseStudy.takeaway)}</span></div>` : ''}</div>
+        </section>` : ''}
+
         <section class="lesson-footer-card">
           <div><span class="eyebrow">ÉTAPE SUIVANTE</span><h2>Valide ce que tu viens d’apprendre.</h2><p>Le module est validé une fois le cours lu et le quiz réussi à 70% minimum.</p></div>
           <div class="lesson-actions">
@@ -734,6 +968,7 @@
       const right = mod.quiz.reduce((acc, q, i) => acc + (qs.answers[i] === q.correctIndex ? 1 : 0), 0);
       qs.score = Math.round((right / mod.quiz.length) * 100);
       qs.finished = true;
+      recordAnswerSet(mod.quiz.map(question => ({ moduleSlug: mod.slug, moduleTitle: mod.title, question })), qs.answers);
       await saveQuizScore(slug, qs.score);
     } else {
       qs.index += 1;
@@ -764,6 +999,125 @@
           ${passed && next ? `<a class="button primary" href="#/module/${next.slug}">Module suivant →</a>` : `<a class="button primary" href="#/">Retour au parcours</a>`}
         </div>
       </main>`;
+  }
+
+  const practiceMemory = {};
+
+  function practiceDefinition(r) {
+    if (r.view === 'daily') {
+      return { kind: 'daily', key: `daily-${today()}`, eyebrow: 'DAILY CHALLENGE', title: '5 questions pour garder le rythme.', subtitle: 'Un mélange des modules disponibles. La première complétion du jour rapporte 25 XP.', items: dailyItems(), passScore: 60 };
+    }
+    if (r.view === 'review') {
+      return { kind: 'review', key: 'review-active', eyebrow: 'RÉVISION CIBLÉE', title: 'Transforme tes erreurs en acquis.', subtitle: 'Une bonne réponse retire la question de ta file. Une erreur la garde pour une prochaine révision.', items: activeReviewItems(10), passScore: 0 };
+    }
+    if (r.view === 'exam') {
+      const levelId = Number(r.levelId || 1);
+      const done = modules.filter(m => m.available && m.level === levelId && progressFor(m.slug).completed).length;
+      const unlocked = levelId !== 1 || done >= 8;
+      return { kind: 'exam', key: `exam-${levelId}`, eyebrow: `EXAMEN · NIVEAU ${levelId}`, title: levelId === 1 ? 'Finance Foundations Exam' : `Examen niveau ${levelId}`, subtitle: '20 questions couvrant les fondamentaux. Réussite à 75%.', items: unlocked ? levelExamItems(levelId) : [], passScore: 75, unlocked, levelId, done };
+    }
+    return null;
+  }
+
+  function getPracticeState(def) {
+    if (!practiceMemory[def.key]) {
+      practiceMemory[def.key] = { index: 0, selected: null, answers: [], finished: false, score: 0, items: def.items };
+    }
+    return practiceMemory[def.key];
+  }
+
+  function renderPractice(r) {
+    const def = practiceDefinition(r);
+    if (!def) return renderNotFound();
+    const existing = practiceMemory[def.key];
+    if (existing?.finished) return renderPracticeResult(def, existing);
+    if (def.kind === 'exam' && !def.unlocked) {
+      return `<main class="auth-shell"><a class="back-link" href="#/">← Retour</a><section class="auth-card"><span class="eyebrow">${def.eyebrow}</span><h1>Encore un peu de parcours avant l’examen.</h1><p>Valide au moins 8 des 10 modules Finance Foundations. Tu es à ${def.done}/10.</p><a class="button primary" href="#/">Continuer les modules</a></section></main>`;
+    }
+    if (!def.items.length) {
+      return `<main class="auth-shell"><a class="back-link" href="#/">← Retour</a><section class="auth-card"><span class="eyebrow">${def.eyebrow}</span><h1>${def.kind === 'review' ? 'Ta file de révision est vide.' : 'Aucune question disponible.'}</h1><p>${def.kind === 'review' ? 'Les questions que tu rates dans les quiz, challenges ou examens apparaîtront ici.' : 'Reviens après avoir avancé dans le parcours.'}</p><a class="button primary" href="#/">Retour au parcours</a></section></main>`;
+    }
+    const ps = getPracticeState(def);
+    const item = ps.items[ps.index];
+    const q = item.question;
+    return `<main class="quiz-shell practice-shell">
+      <div class="quiz-header"><a href="#/">← Accueil</a><span>${ps.index + 1} / ${ps.items.length}</span></div>
+      <div class="quiz-progress"><span style="width:${((ps.index + 1) / ps.items.length) * 100}%"></span></div>
+      <span class="eyebrow">${escapeHtml(def.eyebrow)} · ${escapeHtml(item.moduleTitle)}</span>
+      <h1>${escapeHtml(q.question)}</h1>
+      <div class="options" id="practiceOptions">
+        ${q.options.map((opt, i) => `<button class="option-btn ${ps.selected === i ? 'selected' : ''}" data-practice-index="${i}"><span>${String.fromCharCode(65 + i)}</span>${escapeHtml(opt)}</button>`).join('')}
+      </div>
+      <button class="button primary quiz-next" id="practiceNextBtn" ${ps.selected === null ? 'disabled' : ''}>${ps.index === ps.items.length - 1 ? 'Voir mon résultat' : 'Question suivante →'}</button>
+    </main>`;
+  }
+
+  async function practiceNext(r) {
+    const def = practiceDefinition(r);
+    if (!def) return;
+    const ps = getPracticeState(def);
+    if (ps.selected === null) return;
+    ps.answers.push(ps.selected);
+    if (ps.index === ps.items.length - 1) {
+      const right = ps.items.reduce((acc, item, i) => acc + (ps.answers[i] === item.question.correctIndex ? 1 : 0), 0);
+      ps.score = Math.round((right / ps.items.length) * 100);
+      ps.finished = true;
+      await savePracticeResult(def, ps);
+    } else {
+      ps.index += 1;
+      ps.selected = null;
+    }
+    render();
+  }
+
+  async function savePracticeResult(def, ps) {
+    const beforeActive = new Set(Object.entries(state.learning.review).filter(([, x]) => x?.active).map(([id]) => id));
+    recordAnswerSet(ps.items, ps.answers);
+    const now = new Date().toISOString();
+
+    if (def.kind === 'daily') {
+      const old = state.learning.daily[today()] || {};
+      const first = !old.completed;
+      state.learning.daily[today()] = { score: Math.max(old.score || 0, ps.score), completed: true, updatedAt: now };
+      saveLearning();
+      if (first) bumpActivity(25);
+    } else if (def.kind === 'exam') {
+      const id = String(def.levelId);
+      const old = state.learning.exams[id] || {};
+      const passed = ps.score >= def.passScore;
+      const firstPass = passed && !old.passed;
+      state.learning.exams[id] = { bestScore: Math.max(old.bestScore || 0, ps.score), attempts: (old.attempts || 0) + 1, passed: Boolean(old.passed || passed), updatedAt: now };
+      saveLearning();
+      if (firstPass) bumpActivity(100);
+    } else if (def.kind === 'review') {
+      const afterActive = new Set(Object.entries(state.learning.review).filter(([, x]) => x?.active).map(([id]) => id));
+      let mastered = 0;
+      for (const id of beforeActive) if (!afterActive.has(id)) mastered += 1;
+      if (mastered) bumpActivity(mastered * 5);
+    }
+  }
+
+  function renderPracticeResult(def, ps) {
+    const passed = def.kind === 'review' ? true : ps.score >= def.passScore;
+    const label = def.kind === 'review' ? 'Session terminée' : passed ? 'Réussi' : 'À retravailler';
+    const remaining = reviewCount();
+    return `<main class="quiz-shell result-shell">
+      <span class="eyebrow">${escapeHtml(def.eyebrow)}</span>
+      <div class="score-badge ${passed ? 'pass' : 'fail'}"><strong>${ps.score}%</strong><span>${label}</span></div>
+      <h1>${def.kind === 'review' ? 'Révision terminée.' : passed ? 'Bien joué.' : 'Reviens sur les notions fragiles.'}</h1>
+      <p class="result-lead">${def.kind === 'review' ? `${remaining} question${remaining > 1 ? 's' : ''} restent dans ta file.` : `Seuil de réussite : ${def.passScore}%.`}</p>
+      <div class="review-list">
+        ${ps.items.map((item, i) => {
+          const q = item.question;
+          const ok = ps.answers[i] === q.correctIndex;
+          return `<article class="review ${ok ? 'ok' : 'bad'}"><div class="review-icon">${ok ? '✓' : '×'}</div><div><small>${escapeHtml(item.moduleTitle)}</small><strong>${escapeHtml(q.question)}</strong><p>${escapeHtml(q.explanation)}</p><small>Bonne réponse : ${escapeHtml(q.options[q.correctIndex])}</small></div></article>`;
+        }).join('')}
+      </div>
+      <div class="result-actions">
+        <button class="button secondary" id="practiceRetryBtn">Recommencer</button>
+        ${def.kind === 'review' && remaining ? '<button class="button primary" id="practiceContinueBtn">Continuer les révisions</button>' : '<a class="button primary" href="#/">Retour au parcours</a>'}
+      </div>
+    </main>`;
   }
 
   function renderAuth() {
@@ -802,6 +1156,9 @@
     if (!parts.length) return { view: 'home' };
     if (parts[0] === 'module' && parts[1]) return { view: 'module', slug: decodeURIComponent(parts[1]) };
     if (parts[0] === 'quiz' && parts[1]) return { view: 'quiz', slug: decodeURIComponent(parts[1]) };
+    if (parts[0] === 'daily') return { view: 'daily' };
+    if (parts[0] === 'review') return { view: 'review' };
+    if (parts[0] === 'exam' && parts[1]) return { view: 'exam', levelId: Number(parts[1]) };
     if (parts[0] === 'auth') return { view: 'auth' };
     return { view: '404' };
   }
@@ -813,9 +1170,10 @@
     if (r.view === 'home') body = renderHome();
     else if (r.view === 'module') body = renderModule(r.slug);
     else if (r.view === 'quiz') body = renderQuiz(r.slug);
+    else if (['daily', 'review', 'exam'].includes(r.view)) body = renderPractice(r);
     else if (r.view === 'auth') body = renderAuth();
     else body = renderNotFound();
-    app.innerHTML = `${headerHtml()}${body}${assistantHtml(r)}<footer class="footer">DAF Academy · V3.1 · progression Supabase + Assistant DAF</footer>`;
+    app.innerHTML = `${headerHtml()}${body}${assistantHtml(r)}<footer class="footer">DAF Academy · V4 Phase A · cours enrichis + révision + Daily Challenge + examen + Assistant DAF</footer>`;
     bindEvents(r);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
@@ -860,6 +1218,14 @@
 
     if (r.view === 'module') {
       document.getElementById('markReadBtn')?.addEventListener('click', () => markLessonRead(r.slug));
+      document.querySelectorAll('[data-reveal]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = document.getElementById(btn.dataset.reveal);
+          if (!target) return;
+          target.classList.toggle('hidden');
+          btn.textContent = target.classList.contains('hidden') ? (btn.dataset.reveal.startsWith('case-') ? 'Voir l’analyse DAF' : 'Voir la correction') : 'Masquer la correction';
+        });
+      });
     }
 
     if (r.view === 'quiz') {
@@ -875,6 +1241,30 @@
         quizMemory[r.slug] = { index: 0, selected: null, answers: [], finished: false, score: 0 };
         render();
       });
+    }
+
+    if (['daily', 'review', 'exam'].includes(r.view)) {
+      const def = practiceDefinition(r);
+      if (def && def.items.length) {
+        const ps = getPracticeState(def);
+        document.querySelectorAll('[data-practice-index]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            ps.selected = Number(btn.dataset.practiceIndex);
+            render();
+          });
+        });
+        document.getElementById('practiceNextBtn')?.addEventListener('click', () => practiceNext(r));
+        document.getElementById('practiceRetryBtn')?.addEventListener('click', () => {
+          const refreshed = practiceDefinition(r);
+          practiceMemory[def.key] = { index: 0, selected: null, answers: [], finished: false, score: 0, items: refreshed?.items?.length ? refreshed.items : def.items };
+          render();
+        });
+        document.getElementById('practiceContinueBtn')?.addEventListener('click', () => {
+          const refreshed = practiceDefinition(r);
+          practiceMemory[def.key] = { index: 0, selected: null, answers: [], finished: false, score: 0, items: refreshed?.items || [] };
+          render();
+        });
+      }
     }
 
     if (r.view === 'auth') {
