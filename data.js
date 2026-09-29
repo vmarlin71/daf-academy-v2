@@ -319,6 +319,152 @@ const ready = [
   }
 ]
 
+
+// Phase A.1 · theory boost + workspace tools
+const theoryBoost = {
+  'role-finance': {
+    sections: [
+      {title:'La finance comme système de contrôle et d’allocation', body:'Au-delà du reporting, la fonction finance crée un langage commun pour décider où engager les ressources. Elle arbitre entre croissance, rentabilité, liquidité et risque.', bullets:['Contrôler : fiabiliser les chiffres et les processus','Allouer : décider où investir le capital et les équipes','Challenger : tester les hypothèses opérationnelles','Protéger : anticiper liquidité, fraude, fiscalité et conformité'], example:'Deux projets créent le même EBITDA, mais l’un immobilise 5 M€ de BFR et l’autre 0,5 M€ : le DAF ne les regardera pas de la même façon.'},
+      {title:'Matérialité, vitesse et qualité de l’information', body:'Un bon DAF ne cherche pas une précision parfaite partout. Il distingue les sujets matériels, produit rapidement une première lecture fiable, puis approfondit les écarts qui changent réellement une décision.', bullets:['Matérialité : se concentrer sur les montants et risques significatifs','Traçabilité : savoir d’où vient un chiffre','Comparabilité : utiliser des définitions stables','Vitesse : donner une information assez tôt pour agir']}
+    ],
+    keyTakeaways:['La finance mesure, explique, prévoit et aide à décider.','P&L, bilan et cash doivent toujours être lus ensemble.','Rentabilité et liquidité sont deux dimensions différentes.','Le DAF arbitre aussi le risque et l’allocation du capital.','Un bon chiffre doit être fiable, comparable, traçable et disponible à temps.'],
+    pitfalls:['Confondre production de reporting et création de valeur.','Sur-analyser des écarts immatériels au détriment des vrais drivers.','Croire qu’un EBITDA positif garantit une trésorerie positive.'],
+    sheetTemplate:{title:'Lecture performance / cash',cells:{A1:'Indicateur',B1:'Valeur (M€)',A2:'Chiffre d’affaires',B2:'10',A3:'EBITDA',B3:'1.2',A4:'Variation de cash',B4:'-0.8',A6:'Marge EBITDA',B6:'=B3/B2*100'}}
+  },
+  'pnl-basics': {
+    sections: [
+      {title:'Operating leverage : pourquoi l’EBITDA peut bouger plus vite que le CA', body:'Quand une partie importante des coûts est fixe, une variation de volume se transmet de façon amplifiée à l’EBITDA. C’est l’operating leverage.', example:'Si la marge sur coûts variables est de 40% et que les coûts fixes ne bougent pas, 1 M€ de ventes additionnelles peut générer environ 0,4 M€ d’EBITDA supplémentaire.'},
+      {title:'Comprendre les bridges plutôt que commenter les lignes', body:'Pour expliquer une variation, le DAF décompose le mouvement en drivers : volume, prix, mix, inflation, productivité, coûts fixes et change.', bullets:['Masse : combien d’euros gagnés ou perdus ?','Taux : la qualité économique s’améliore-t-elle ?','Drivers : qu’est-ce qui explique le mouvement ?','Actions : quel levier est réellement pilotable ?']}
+    ],
+    keyTakeaways:['Le P&L mesure la performance sur une période, pas les flux de cash.','La marge brute relie ventes et coûts directement liés aux ventes.','EBITDA et EBIT diffèrent notamment par D&A.','Masse et pourcentage sont complémentaires.','Une croissance de CA peut être dilutive.'],
+    pitfalls:['Traiter l’EBITDA comme du cash.','Se satisfaire d’un CA en croissance sans analyser marge et mix.','Comparer des taux sans regarder les montants absolus.'],
+    sheetTemplate:{title:'Construction du P&L',cells:{A1:'P&L',B1:'2024 (M€)',A2:'Chiffre d’affaires',B2:'120',A3:'COGS',B3:'-78',A4:'Marge brute',B4:'=B2+B3',A5:'Opex hors D&A',B5:'-25',A6:'EBITDA',B6:'=B4+B5',A7:'D&A',B7:'-4',A8:'EBIT',B8:'=B6+B7',A9:'Intérêts',B9:'-3',A10:'Impôts',B10:'-2',A11:'Résultat net',B11:'=B8+B9+B10',D2:'Marge brute %',E2:'=B4/B2*100',D3:'Marge EBITDA %',E3:'=B6/B2*100'}}
+  },
+  'balance-sheet': {
+    sections: [
+      {title:'Court terme vs long terme : lire la liquidité', body:'Classer les actifs et passifs par échéance permet de comprendre si l’entreprise peut honorer ses obligations de court terme.', bullets:['Current assets : cash, clients, stocks…','Current liabilities : fournisseurs, taxes, dette court terme…','Net debt : dette financière moins cash disponible','Working capital : ressources immobilisées dans le cycle opérationnel']},
+      {title:'Le bilan révèle souvent les problèmes avant le P&L', body:'Des stocks qui gonflent, des créances qui vieillissent ou une dette court terme qui augmente peuvent signaler une tension avant qu’elle ne soit visible dans le résultat.', example:'Un EBITDA stable avec des stocks +30% peut annoncer obsolescence, baisse de demande ou mauvaise planification.'}
+    ],
+    keyTakeaways:['Le bilan est une photographie à une date.','Actifs = passifs + capitaux propres.','Le BFR relie directement le bilan au cash.','La maturité de la dette compte autant que son montant.','Les tendances de stocks, créances et fournisseurs sont des signaux de pilotage.'],
+    pitfalls:['Lire le bilan uniquement à la clôture annuelle.','Confondre capitaux propres et cash disponible.','Ignorer l’âge des créances ou l’obsolescence des stocks.'],
+    sheetTemplate:{title:'Équilibre du bilan',cells:{A1:'Actifs',B1:'M€',D1:'Passifs + Equity',E1:'M€',A2:'Immobilisations',B2:'55',A3:'Stocks',B3:'18',A4:'Clients',B4:'22',A5:'Cash',B5:'5',A6:'Total actifs',B6:'=SUM(B2:B5)',D2:'Capitaux propres',E2:'42',D3:'Dette',E3:'28',D4:'Fournisseurs',E4:'20',D5:'Autres passifs',E5:'10',D6:'Total',E6:'=SUM(E2:E5)',D8:'Écart bilan',E8:'=B6-E6'}}
+  },
+  'cash-flow': {
+    sections: [
+      {title:'Le bridge EBITDA → cash : la lecture centrale du DAF', body:'L’EBITDA est un point de départ. Pour arriver au cash, il faut intégrer BFR, capex, impôts, intérêts et éléments non récurrents.', formula:'Operating cash conversion ≈ (EBITDA - ΔBFR - cash taxes) / EBITDA', example:'EBITDA 20, hausse du BFR 6, impôts cash 3 : avant capex et intérêts, seulement 11 M€ ont été convertis en cash.'},
+      {title:'Cash structurel vs cash ponctuel', body:'Le DAF distingue les effets durables des décalages temporaires. Un gros encaissement en fin de mois peut embellir le cash sans améliorer la qualité structurelle.', bullets:['Regarder les tendances glissantes, pas un seul point de clôture','Identifier les cut-offs fournisseurs/clients inhabituels','Séparer cash opérationnel, investissement et financement','Construire un forecast de liquidité en complément du réalisé']}
+    ],
+    keyTakeaways:['Le cash-flow explique la variation de trésorerie.','L’EBITDA n’intègre ni capex ni BFR.','Une hausse du BFR consomme du cash.','Les flux doivent être séparés entre opérationnel, investissement et financement.','La conversion de cash est un indicateur de qualité de performance.'],
+    pitfalls:['Confondre cash-flow opérationnel et free cash flow.','Analyser un mois de cash sans tenir compte du phasing.','Oublier les impôts, intérêts et éléments exceptionnels.'],
+    sheetTemplate:{title:'Bridge EBITDA vers cash',cells:{A1:'Bridge cash',B1:'M€',A2:'EBITDA',B2:'20',A3:'Variation BFR',B3:'-6',A4:'Impôts cash',B4:'-3',A5:'Capex',B5:'-5',A6:'Intérêts',B6:'-2',A7:'Free cash flow simplifié',B7:'=SUM(B2:B6)',D2:'Cash conversion avant capex',E2:'=(B2+B3+B4)/B2*100'}}
+  },
+  'accounting-basics': {
+    sections: [
+      {title:'Le sens débit / crédit dépend de la nature du compte', body:'Débit et crédit ne signifient pas « mauvais » ou « bon ». Ils indiquent simplement le côté de l’écriture. Les règles changent selon actifs, passifs, charges et produits.', bullets:['Actif : augmentation au débit','Passif / equity : augmentation au crédit','Charge : augmentation au débit','Produit : augmentation au crédit']},
+      {title:'Du journal aux états financiers', body:'Chaque transaction alimente des comptes du grand livre. La balance agrège les soldes, puis ces comptes sont mappés vers le P&L et le bilan.', example:'Une facture fournisseur de 10 k€ de conseil : débit charge 10 k€ / crédit fournisseur 10 k€. Au paiement : débit fournisseur / crédit banque.'}
+    ],
+    keyTakeaways:['Toute écriture équilibrée a au moins un débit et un crédit.','Le sens dépend du type de compte.','Le GL est la base détaillée des états financiers.','Une transaction peut affecter le P&L, le bilan, ou uniquement le bilan.','Comprendre les écritures aide à challenger la qualité du reporting.'],
+    pitfalls:['Associer débit à une dépense et crédit à une recette.','Oublier que le paiement d’une dette fournisseur n’affecte plus le P&L.','Chercher une logique de cash dans toutes les écritures comptables.'],
+    sheetTemplate:{title:'Mini journal comptable',cells:{A1:'Transaction',B1:'Débit',C1:'Crédit',D1:'Montant',A2:'Facture conseil',B2:'Charge conseil',C2:'Fournisseur',D2:'10',A3:'Paiement fournisseur',B3:'Fournisseur',C3:'Banque',D3:'10'}}
+  },
+  'accruals-provisions': {
+    sections: [
+      {title:'Accrual, provision et prepaid : trois logiques différentes', body:'Un accrual rattache une charge certaine ou quasi certaine à la bonne période avant réception de facture. Une provision couvre une obligation incertaine. Un prepaid décale une charge déjà payée vers les périodes futures.', bullets:['Accrual : timing de facture','Provision : incertitude de montant ou d’échéance','Prepaid : cash payé avant consommation économique']},
+      {title:'Pourquoi le DAF surveille les estimations', body:'Des accruals ou provisions mal calibrés peuvent déplacer artificiellement la performance d’une période à l’autre. Leur reprise doit être suivie pour éviter les « réserves » cachées.', example:'Un bonus estimé à 500 k€ en décembre puis payé 300 k€ en mars crée une reprise de 200 k€ : il faut comprendre si l’estimation initiale était raisonnable.'}
+    ],
+    keyTakeaways:['Le principe de cut-off rattache revenus et charges à la bonne période.','Accrual et provision ne répondent pas à la même incertitude.','Les prepaids sont des actifs tant que le service n’est pas consommé.','Les estimations doivent être documentées et réévaluées.','Les reprises inhabituelles peuvent fausser la lecture de performance.'],
+    pitfalls:['Provisionner pour lisser volontairement le résultat.','Confondre facture non reçue et obligation réellement incertaine.','Ne pas suivre les reprises d’accruals/provisions.'],
+    sheetTemplate:{title:'Cut-off de clôture',cells:{A1:'Élément',B1:'Montant estimé',C1:'Facturé ?',D1:'Traitement',A2:'Électricité décembre',B2:'80',C2:'Non',D2:'Accrual',A3:'Litige client',B3:'250',C3:'N/A',D3:'Provision',A4:'Assurance annuelle payée',B4:'120',C4:'Oui',D4:'Prepaid'}}
+  },
+  'working-capital': {
+    sections: [
+      {title:'DSO, DIO, DPO : traduire le BFR en jours opérationnels', body:'Les ratios en jours permettent de comparer des entités de tailles différentes et de relier le cash aux processus métier.', bullets:['DSO ≈ créances clients / CA × nombre de jours','DIO ≈ stocks / COGS × nombre de jours','DPO ≈ fournisseurs / achats ou COGS × nombre de jours'], example:'À 365 M€ de CA annuel, 1 jour de DSO représente environ 1 M€ de créances.'},
+      {title:'Croissance et saisonnalité : le piège du BFR', body:'Même avec des ratios stables, une croissance rapide peut consommer du cash car le niveau absolu de stocks et créances augmente. Les comparaisons doivent aussi tenir compte de la saisonnalité.', bullets:['Comparer jours et montants absolus','Normaliser les effets de saison','Segmenter par client, produit, site ou catégorie','Distinguer amélioration structurelle et simple phasing']}
+    ],
+    keyTakeaways:['Le BFR opérationnel vient surtout des stocks + clients - fournisseurs.','DSO, DIO et DPO relient finance et opérations.','La croissance peut consommer du cash même si les ratios sont stables.','Une action BFR doit être attribuée à un responsable opérationnel.','Le cash libéré est souvent plus parlant que le seul nombre de jours.'],
+    pitfalls:['Réduire les stocks au point de dégrader le service client.','Améliorer artificiellement le DPO en payant en retard.','Comparer deux mois saisonniers sans normalisation.'],
+    sheetTemplate:{title:'BFR et jours',cells:{A1:'Hypothèses',B1:'Valeur',A2:'CA annuel',B2:'120',A3:'COGS annuel',B3:'78',A4:'DSO',B4:'55',A5:'DIO',B5:'62',A6:'DPO',B6:'45',D2:'Créances',E2:'=B2/365*B4',D3:'Stocks',E3:'=B3/365*B5',D4:'Fournisseurs',E4:'=B3/365*B6',D5:'BFR',E5:'=E2+E3-E4',D7:'Cash / jour DSO',E7:'=B2/365'}}
+  },
+  'margin-ebitda': {
+    sections: [
+      {title:'Contribution, marge brute et EBITDA : ne pas mélanger les étages', body:'Selon l’organisation, plusieurs marges coexistent. Il faut définir précisément les coûts inclus pour rendre les comparaisons cohérentes.', bullets:['Contribution margin : ventes moins coûts variables pertinents','Gross margin : ventes moins COGS selon la convention comptable','EBITDA : performance après coûts opérationnels hors D&A'], example:'Une hausse de gross margin peut coexister avec une baisse d’EBITDA si les coûts fixes commerciaux ou centraux augmentent fortement.'},
+      {title:'Fixed-cost absorption et effet de volume', body:'Quand la production augmente, certains coûts fixes industriels se répartissent sur plus d’unités. À l’inverse, une sous-activité peut pénaliser les marges même sans inflation de coûts.', bullets:['Séparer prix, volume, mix et absorption','Comparer coûts unitaires et coûts totaux','Identifier les coûts réellement fixes à l’horizon analysé']}
+    ],
+    keyTakeaways:['Toujours définir le périmètre d’une marge.','L’EBITDA combine marge commerciale et structure de coûts.','Le mix peut améliorer le taux même avec des volumes stables.','L’absorption des coûts fixes explique une partie des écarts industriels.','La marge doit être analysée en masse et en %.'],
+    pitfalls:['Comparer des EBITDA avec des conventions différentes.','Attribuer tout mouvement de marge au prix.','Ignorer l’impact du volume sur l’absorption des coûts fixes.'],
+    sheetTemplate:{title:'Marge et EBITDA',cells:{A1:'P&L simplifié',B1:'2023',C1:'2024',D1:'Var.',A2:'CA',B2:'110',C2:'120',D2:'=C2-B2',A3:'Coûts variables',B3:'-66',C3:'-72',D3:'=C3-B3',A4:'Contribution',B4:'=B2+B3',C4:'=C2+C3',D4:'=C4-B4',A5:'Coûts fixes',B5:'-20',C5:'-22',D5:'=C5-B5',A6:'EBITDA',B6:'=B4+B5',C6:'=C4+C5',D6:'=C6-B6',A7:'Marge EBITDA',B7:'=B6/B2*100',C7:'=C6/C2*100',D7:'=C7-B7'}}
+  },
+  'fixed-variable-costs': {
+    sections: [
+      {title:'Marge sur coûts variables et seuil de rentabilité', body:'La contribution unitaire finance d’abord les coûts fixes ; au-delà du point mort, elle devient du résultat.', formula:'Break-even volume = Fixed costs / (Price per unit - Variable cost per unit)', example:'Prix 10 €, coût variable 6 €, coûts fixes 200 k€ : contribution 4 €/unité et break-even de 50 000 unités.'},
+      {title:'Dans la vraie vie, peu de coûts sont parfaitement fixes', body:'Beaucoup de coûts sont semi-variables ou fixes par paliers. La classification dépend donc de l’horizon et de la décision analysée.', bullets:['Court terme : davantage de coûts semblent fixes','Long terme : loyers, équipes et capacités deviennent ajustables','Step costs : nouveau coût fixe au-delà d’un seuil de capacité','Coût évitable ≠ coût comptablement variable']}
+    ],
+    keyTakeaways:['La distinction fixe/variable dépend de l’horizon.','La contribution mesure ce qui reste pour couvrir les coûts fixes.','Le point mort est un outil de décision, pas une vérité permanente.','Les coûts par paliers créent des ruptures dans la structure de coûts.','Pour une décision, raisonner en coûts incrémentaux et évitables.'],
+    pitfalls:['Qualifier un coût de variable uniquement parce qu’il change d’une année à l’autre.','Utiliser un break-even sans tester prix, mix et capacité.','Confondre coût historique et coût pertinent pour la décision.'],
+    sheetTemplate:{title:'Break-even',cells:{A1:'Hypothèse',B1:'Valeur',A2:'Prix / unité',B2:'10',A3:'Coût variable / unité',B3:'6',A4:'Coûts fixes',B4:'200000',A5:'Contribution / unité',B5:'=B2-B3',A6:'Seuil de rentabilité (unités)',B6:'=B4/B5',A7:'Volume prévu',B7:'65000',A8:'Résultat au volume prévu',B8:'=B7*B5-B4'}}
+  },
+  'financial-statements-link': {
+    sections: [
+      {title:'Raisonner transaction par transaction', body:'Le moyen le plus sûr de relier les états est de suivre chaque événement : effet P&L, mouvement de bilan puis timing de cash.', example:'Vente de 100 à crédit : +100 CA et résultat selon la marge ; +100 créance client ; aucun cash jusqu’au paiement.'},
+      {title:'Les grands bridges à savoir reconstruire', body:'Un DAF doit pouvoir expliquer comment le résultat devient cash et comment les décisions de financement modifient le bilan.', bullets:['EBITDA → EBIT : D&A','EBIT → résultat net : intérêts, impôts, autres','Résultat / EBITDA → cash : BFR, capex, taxes, intérêts','Dette nette : dette financière - cash','Equity : résultat retenu, dividendes, capital et autres mouvements']}
+    ],
+    keyTakeaways:['Une transaction peut toucher les trois états à des moments différents.','Les éléments non cash expliquent une partie de l’écart résultat / cash.','Le BFR traduit des décalages entre activité et encaissements/décaissements.','Capex affecte d’abord bilan et cash puis le P&L via D&A.','Savoir reconstruire les bridges est un réflexe fondamental de DAF.'],
+    pitfalls:['Chercher un mouvement de cash pour chaque charge P&L.','Oublier que le capex n’est pas immédiatement une charge d’exploitation.','Analyser la dette sans déduire ou qualifier le cash disponible.'],
+    sheetTemplate:{title:'Pont entre les états',cells:{A1:'Bridge',B1:'M€',A2:'EBITDA',B2:'18',A3:'D&A',B3:'-4',A4:'EBIT',B4:'=B2+B3',A5:'Intérêts',B5:'-2',A6:'Impôts',B6:'-3',A7:'Résultat net simplifié',B7:'=SUM(B4:B6)',D2:'Variation BFR',E2:'-5',D3:'Capex',E3:'-6',D4:'FCF simplifié',E4:'=B2+E2+E3+B5+B6'}}
+  }
+};
+
+for (const mod of ready.filter(m => m.order <= 10)) {
+  const boost = theoryBoost[mod.slug];
+  if (!boost) continue;
+  mod.sections = [...(mod.sections || []), ...(boost.sections || [])];
+  mod.keyTakeaways = boost.keyTakeaways || [];
+  mod.pitfalls = boost.pitfalls || [];
+  mod.sheetTemplate = boost.sheetTemplate || null;
+  mod.duration = (mod.duration || 20) + 6;
+}
+
+const financeFormulas = [
+  {category:'P&L & rentabilité',items:[
+    {name:'Marge brute',formula:'Net Sales - COGS',note:'Mesure la contribution après coûts directement liés aux ventes.'},
+    {name:'Marge brute %',formula:'Gross Margin / Net Sales × 100',note:'À analyser avec la marge en masse.'},
+    {name:'Marge EBITDA %',formula:'EBITDA / Net Sales × 100',note:'Mesure la rentabilité opérationnelle avant D&A.'},
+    {name:'EBIT',formula:'EBITDA - D&A',note:'Résultat opérationnel après depreciation & amortization.'},
+    {name:'Contribution unitaire',formula:'Prix unitaire - coût variable unitaire',note:'Contribution disponible pour couvrir les coûts fixes.'},
+    {name:'Break-even volume',formula:'Coûts fixes / contribution unitaire',note:'Volume nécessaire pour couvrir les coûts fixes.'}
+  ]},
+  {category:'Cash & BFR',items:[
+    {name:'BFR opérationnel',formula:'Stocks + Créances clients - Dettes fournisseurs',note:'Vision simplifiée du cash immobilisé dans le cycle opérationnel.'},
+    {name:'DSO',formula:'Créances clients / CA × 365',note:'Nombre moyen de jours de ventes immobilisés en créances.'},
+    {name:'DIO',formula:'Stocks / COGS × 365',note:'Nombre moyen de jours de coût des ventes immobilisé en stock.'},
+    {name:'DPO',formula:'Fournisseurs / Achats (ou COGS) × 365',note:'Approximation du délai moyen de paiement fournisseurs.'},
+    {name:'Free Cash Flow simplifié',formula:'EBITDA - ΔBFR - Capex - Cash taxes - Cash interest',note:'Bridge simplifié ; adapter au périmètre de l’analyse.'},
+    {name:'Cash conversion',formula:'Operating cash flow / EBITDA × 100',note:'Mesure la conversion de la performance opérationnelle en cash.'}
+  ]},
+  {category:'Croissance',items:[
+    {name:'Croissance %',formula:'Valeur N / Valeur N-1 - 1',note:'Variation relative entre deux périodes.'},
+    {name:'CAGR',formula:'(Valeur finale / Valeur initiale)^(1/n) - 1',note:'Taux de croissance annuel composé sur n années.'},
+    {name:'ASP',formula:'Net Sales / Volume',note:'Average Selling Price ; utile pour suivre prix et mix.'}
+  ]},
+  {category:'Investissement',items:[
+    {name:'ROI',formula:'Gain net / investissement × 100',note:'Mesure simple, à compléter par la dimension temps.'},
+    {name:'Payback',formula:'Investissement initial / cash-flow annuel',note:'Approximation si les flux sont stables.'},
+    {name:'NPV / VAN',formula:'Σ CFt / (1+r)^t - investissement initial',note:'Valeur créée après actualisation des cash-flows.'},
+    {name:'IRR / TRI',formula:'Taux r tel que NPV = 0',note:'À comparer au coût du capital et au profil de risque.'}
+  ]},
+  {category:'Valorisation & dette',items:[
+    {name:'Enterprise Value',formula:'Equity Value + Net Debt (+ ajustements)',note:'Valeur des opérations indépendamment de la structure de financement.'},
+    {name:'Net Debt',formula:'Dette financière - cash disponible',note:'Qualifier le cash réellement disponible et les éléments assimilés.'},
+    {name:'Leverage',formula:'Net Debt / EBITDA',note:'Multiple de dette nette par rapport à l’EBITDA.'},
+    {name:'Interest coverage',formula:'EBITDA ou EBIT / intérêts cash',note:'Vérifier la définition utilisée dans les covenants.'}
+  ]},
+  {category:'Ratios clés',items:[
+    {name:'ROCE',formula:'EBIT après impôt / capital employé',note:'Mesure la rentabilité du capital mobilisé.'},
+    {name:'Current ratio',formula:'Current Assets / Current Liabilities',note:'Indicateur simple de liquidité court terme.'},
+    {name:'Asset turnover',formula:'Net Sales / capital employé ou actifs',note:'Mesure l’efficacité d’utilisation des actifs.'}
+  ]}
+];
+
 const roadmap = [
   {slug:'monthly-close',level:2,order:17,title:'Clôture mensuelle efficace',duration:30,difficulty:'Intermédiaire',description:'Organiser fast close, contrôles, cut-off et analyse.'},
   {slug:'management-reporting',level:2,order:18,title:'Management Reporting',duration:30,difficulty:'Intermédiaire',description:'Construire un reporting utile au management.'},
@@ -375,4 +521,4 @@ const levels = [
 ]
 
 
-window.DAF_DATA = { modules, levels };
+window.DAF_DATA = { modules, levels, financeFormulas };
